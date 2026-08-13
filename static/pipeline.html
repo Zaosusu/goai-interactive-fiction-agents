@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent 管线调试台</title>
+    <link rel="stylesheet" href="/static/pipeline.css?v=creator-nav-v1" />
+  </head>
+  <body>
+    <main class="workbench-shell">
+      <aside class="side-rail">
+        <header class="brand-block">
+          <div>
+            <p class="eyebrow">Pipeline Workbench</p>
+            <h1>Agent 管线调试台</h1>
+          </div>
+          <nav class="brand-actions" aria-label="平台导航">
+            <a id="open-creator" class="ghost-link creator-link" href="/creator">Creator</a>
+            <a class="ghost-link" href="/">沙盒</a>
+          </nav>
+        </header>
+
+        <section class="panel run-panel">
+          <div class="panel-title">
+            <h2>当前运行</h2>
+            <button id="reset-state" type="button">重置</button>
+          </div>
+          <dl class="run-meta">
+            <div>
+              <dt>项目</dt>
+              <dd id="run-title">未命名</dd>
+            </div>
+            <div>
+              <dt>世界</dt>
+              <dd id="run-world">未创建</dd>
+            </div>
+            <div>
+              <dt>资产</dt>
+              <dd id="run-assets">0</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel config-panel">
+          <div class="panel-title">
+            <h2>模型配置</h2>
+            <div class="button-row">
+              <button id="load-effective-config" type="button">重新载入配置</button>
+              <button id="save-config" type="button">保存</button>
+            </div>
+          </div>
+          <div id="effective-config-summary" class="config-summary">正在读取配置...</div>
+          <section class="config-group config-group-default" aria-labelledby="config-default-llm-title">
+            <h3 id="config-default-llm-title">默认 LLM</h3>
+            <label>
+              默认 base_url
+              <input id="default-llm-base-url" placeholder="留空使用环境变量" />
+            </label>
+            <label>
+              默认 API key
+              <span class="secret-field">
+                <input id="default-llm-api-key" type="password" placeholder="留空使用环境变量" autocomplete="off" />
+                <button class="icon-button reveal-secret" type="button" data-target="default-llm-api-key" aria-label="显示或隐藏默认 API key"></button>
+              </span>
+            </label>
+            <label>
+              默认 model
+              <input id="default-llm-model" placeholder="例如 gpt-5.5" />
+            </label>
+          </section>
+
+          <section class="config-group config-group-default" aria-labelledby="config-default-image-title">
+            <h3 id="config-default-image-title">默认图片</h3>
+            <label>
+              默认 provider
+              <select id="default-image-provider">
+                <option value="stepfun">stepfun</option>
+                <option value="openai">openai</option>
+                <option value="api2img">api2img</option>
+                <option value="image2">image2</option>
+              </select>
+            </label>
+            <label>
+              默认 base_url
+              <input id="default-image-base-url" value="https://api.stepfun.com/step_plan/v1" />
+            </label>
+            <label>
+              默认 API key
+              <span class="secret-field">
+                <input id="default-image-api-key" type="password" placeholder="留空使用 STEPFUN_API_KEY" autocomplete="off" />
+                <button class="icon-button reveal-secret" type="button" data-target="default-image-api-key" aria-label="显示或隐藏默认图片 API key"></button>
+              </span>
+            </label>
+            <label>
+              默认 model
+              <select id="default-image-model">
+                <option value="step-image-edit-2">step-image-edit-2</option>
+              </select>
+            </label>
+            <div class="split-fields">
+              <label>
+                默认尺寸（宽 x 高）
+                <select id="default-image-size">
+                  <option value="1024x1024">正方形 1024宽 x 1024高</option>
+                  <option value="1360x768">纵向 768宽 x 1360高</option>
+                  <option value="1184x896">纵向 896宽 x 1184高</option>
+                  <option value="768x1360">横向 1360宽 x 768高</option>
+                  <option value="896x1184">横向 1184宽 x 896高</option>
+                </select>
+              </label>
+              <label>
+                默认重试
+                <input id="default-image-retry" type="number" min="0" value="3" />
+              </label>
+            </div>
+            <div class="split-fields">
+              <label>
+                默认 seed
+                <input id="default-image-seed" type="number" min="0" placeholder="留空随机" />
+              </label>
+              <label>
+                默认 steps
+                <input id="default-image-steps" type="number" min="1" max="50" value="8" />
+              </label>
+            </div>
+            <div class="split-fields">
+              <label>
+                默认 cfg scale
+                <input id="default-image-cfg-scale" type="number" min="0" step="0.1" value="1" />
+              </label>
+              <label class="checkbox-row">
+                <input id="default-image-text-mode" type="checkbox" />
+                text mode
+              </label>
+            </div>
+          </section>
+
+          <section class="config-group config-group-script" aria-labelledby="config-script-title">
+            <div class="config-group-heading">
+              <h3 id="config-script-title">
+                <span class="config-title-zh">剧本理解</span>
+                <span class="config-title-en">ScriptDecompositionAgent</span>
+              </h3>
+              <label class="checkbox-row">
+                <input id="script-use-default-llm" type="checkbox" checked />
+                使用默认
+              </label>
+            </div>
+            <div class="agent-config-fields" data-agent-fields="script">
+              <label>
+                剧本理解 base_url
+                <input id="script-base-url" placeholder="留空继承默认" />
+              </label>
+              <label>
+                剧本理解 API key
+                <span class="secret-field">
+                  <input id="script-api-key" type="password" placeholder="留空继承默认" autocomplete="off" />
+                  <button class="icon-button reveal-secret" type="button" data-target="script-api-key" aria-label="显示或隐藏剧本理解 API key"></button>
+                </span>
+              </label>
+              <label>
+                剧本理解 model
+                <input id="script-model" placeholder="留空继承默认" />
+              </label>
+            </div>
+          </section>
+
+          <section class="config-group config-group-prompts" aria-labelledby="config-prompts-title">
+            <div class="config-group-heading">
+              <h3 id="config-prompts-title">
+                <span class="config-title-zh">视觉提示词</span>
+                <span class="config-title-en">VisualPromptComposerAgent</span>
+              </h3>
+              <label class="checkbox-row">
+                <input id="visual-use-default-llm" type="checkbox" checked />
+                使用默认
+              </label>
+            </div>
+            <div class="agent-config-fields" data-agent-fields="visual">
+            <label>
+              视觉提示词 API key
+              <span class="secret-field">
+                <input id="visual-prompt-api-key" type="password" placeholder="留空继承默认" autocomplete="off" />
+                <button class="icon-button reveal-secret" type="button" data-target="visual-prompt-api-key" aria-label="显示或隐藏视觉提示词 API key"></button>
+              </span>
+            </label>
+            <label>
+              视觉提示词 API base_url
+              <input id="visual-prompt-base-url" placeholder="留空继承默认" />
+            </label>
+            <label>
+              视觉提示词 model
+              <input id="visual-prompt-model" placeholder="留空继承默认" />
+            </label>
+            </div>
+          </section>
+
+          <section class="config-group config-group-image" aria-labelledby="config-image-title">
+            <div class="config-group-heading">
+              <h3 id="config-image-title">
+                <span class="config-title-zh">图片生成</span>
+                <span class="config-title-en">VisualAssetGenerationAgent</span>
+              </h3>
+              <label class="checkbox-row">
+                <input id="image-use-default-image" type="checkbox" checked />
+                使用默认
+              </label>
+            </div>
+            <div class="agent-config-fields" data-agent-fields="image">
+            <label>
+              图片 provider
+              <select id="image-provider">
+                <option value="stepfun">stepfun</option>
+                <option value="openai">openai</option>
+                <option value="api2img">api2img</option>
+                <option value="image2">image2</option>
+              </select>
+            </label>
+            <label>
+              图片 base_url
+              <input id="image-base-url" value="https://api.stepfun.com/step_plan/v1" />
+            </label>
+            <label>
+              图片 API key
+              <span class="secret-field">
+                <input id="image-api-key" type="password" placeholder="留空使用 STEPFUN_API_KEY" autocomplete="off" />
+                <button class="icon-button reveal-secret" type="button" data-target="image-api-key" aria-label="显示或隐藏图片 API key"></button>
+              </span>
+            </label>
+            <label>
+              图片 model
+              <select id="image-model">
+                <option value="step-image-edit-2">step-image-edit-2</option>
+              </select>
+            </label>
+            <div class="split-fields">
+              <label>
+                尺寸（宽 x 高）
+                <select id="image-size">
+                  <option value="1024x1024">正方形 1024宽 x 1024高</option>
+                  <option value="1360x768">纵向 768宽 x 1360高</option>
+                  <option value="1184x896">纵向 896宽 x 1184高</option>
+                  <option value="768x1360">横向 1360宽 x 768高</option>
+                  <option value="896x1184">横向 1184宽 x 896高</option>
+                </select>
+              </label>
+              <label>
+                重试
+                <input id="image-retry" type="number" min="0" value="3" />
+              </label>
+            </div>
+            <div class="split-fields">
+              <label>
+                seed
+                <input id="image-seed" type="number" min="0" placeholder="留空随机" />
+              </label>
+              <label>
+                steps
+                <input id="image-steps" type="number" min="1" max="50" value="8" />
+              </label>
+            </div>
+            <div class="split-fields">
+              <label>
+                cfg scale
+                <input id="image-cfg-scale" type="number" min="0" step="0.1" value="1" />
+              </label>
+              <label class="checkbox-row">
+                <input id="image-text-mode" type="checkbox" />
+                text mode
+              </label>
+            </div>
+            </div>
+          </section>
+
+          <section class="config-group config-group-world" aria-labelledby="config-world-title">
+            <div class="config-group-heading">
+              <h3 id="config-world-title">
+                <span class="config-title-zh">世界生成</span>
+                <span class="config-title-en">WorldBuilderAgent</span>
+              </h3>
+              <label class="checkbox-row">
+                <input id="world-use-default-llm" type="checkbox" checked />
+                使用默认
+              </label>
+            </div>
+            <div class="agent-config-fields" data-agent-fields="world">
+            <label>
+              世界 API base_url
+              <input id="world-base-url" placeholder="留空继承默认" />
+            </label>
+            <label>
+              世界 API key
+              <span class="secret-field">
+                <input id="world-api-key" type="password" placeholder="留空继承默认" autocomplete="off" />
+                <button class="icon-button reveal-secret" type="button" data-target="world-api-key" aria-label="显示或隐藏世界 API key"></button>
+              </span>
+            </label>
+            <label>
+              世界 API model
+              <input id="world-model" placeholder="留空继承默认" />
+            </label>
+            </div>
+          </section>
+
+          <section class="config-group config-group-npc" aria-labelledby="config-npc-title">
+            <div class="config-group-heading">
+              <h3 id="config-npc-title">
+                <span class="config-title-zh">NPC 对话</span>
+                <span class="config-title-en">NPCRuntimeAgent</span>
+              </h3>
+              <label class="checkbox-row">
+                <input id="npc-use-default-llm" type="checkbox" checked />
+                使用默认
+              </label>
+            </div>
+            <div class="agent-config-fields" data-agent-fields="npc">
+            <label>
+              NPC API base_url
+              <input id="npc-base-url" placeholder="留空继承默认" />
+            </label>
+            <label>
+              NPC API key
+              <span class="secret-field">
+                <input id="npc-api-key" type="password" placeholder="留空继承默认" autocomplete="off" />
+                <button class="icon-button reveal-secret" type="button" data-target="npc-api-key" aria-label="显示或隐藏 NPC API key"></button>
+              </span>
+            </label>
+            <label>
+              NPC model
+              <input id="npc-model" placeholder="留空继承默认" />
+            </label>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel stage-panel">
+          <div class="panel-title">
+            <h2>阶段状态</h2>
+          </div>
+          <div id="stage-list" class="stage-list"></div>
+        </section>
+      </aside>
+
+      <section class="main-workspace">
+        <nav class="tabbar" id="tabbar" aria-label="Pipeline tabs"></nav>
+
+        <section class="toolbar">
+          <div>
+            <p class="eyebrow" id="active-agent">ScriptDecompositionAgent</p>
+            <h2 id="active-title">剧本输入</h2>
+          </div>
+          <p id="global-status" class="status-text" role="status">就绪</p>
+        </section>
+
+        <section id="run-banner" class="run-banner" aria-live="polite" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <div>
+            <strong id="run-banner-title">运行中</strong>
+            <p id="run-banner-detail">正在处理当前阶段...</p>
+          </div>
+        </section>
+
+        <section id="agent-run-log-panel" class="agent-run-log-panel" aria-live="polite">
+          <div class="agent-run-log-header">
+            <div>
+              <strong>Agent 运行日志</strong>
+              <span>展示可观察步骤、模型调用和校验结果</span>
+            </div>
+            <div class="button-row">
+              <button id="cancel-current-job" class="danger" type="button" hidden>终止</button>
+              <button id="clear-run-log" type="button">清空</button>
+            </div>
+          </div>
+          <div id="agent-run-log" class="agent-run-log"></div>
+        </section>
+
+        <section class="tab-page active" data-page="script">
+          <div class="two-column">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>剧本文档</h3>
+                <div class="button-row">
+                  <button id="load-file" type="button">读取文件</button>
+                  <button id="import-document" type="button">后端导入</button>
+                </div>
+              </div>
+              <div class="split-fields">
+                <label>
+                  标题
+                  <input id="script-title" placeholder="剧本标题" />
+                </label>
+                <label>
+                  玩家名
+                  <input id="script-player" value="主角" />
+                </label>
+              </div>
+              <label>
+                拆解模式
+                <select id="decomposition-mode">
+                  <option value="llm" selected>LLM Agent 拆解</option>
+                  <option value="rules">规则解析</option>
+                </select>
+              </label>
+              <label>
+                文件
+                <input id="script-file" type="file" accept=".txt,.md,.markdown,.json,.docx,.pdf,.rtf,.html,.htm" multiple />
+              </label>
+              <label>
+                文件夹
+                <input id="script-folder" type="file" webkitdirectory directory multiple />
+              </label>
+              <label>
+                原始文本
+                <textarea id="source-text" class="tall-textarea" placeholder="粘贴剧本，或选择文件读取"></textarea>
+              </label>
+              <div class="button-row end">
+                <button id="run-decomposition" class="primary" type="button">运行拆解/导入</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h3>运行结果</h3>
+                <button id="use-current-world" type="button">载入已有世界</button>
+              </div>
+              <div class="summary-grid">
+                <div>
+                  <span>通过</span>
+                  <strong id="summary-passed">-</strong>
+                </div>
+                <div>
+                  <span>节点</span>
+                  <strong id="summary-nodes">0</strong>
+                </div>
+                <div>
+                  <span>关系</span>
+                  <strong id="summary-edges">0</strong>
+                </div>
+                <div>
+                  <span>证据</span>
+                  <strong id="summary-evidence">0</strong>
+                </div>
+              </div>
+              <label>
+                世界 ID
+                <select id="world-picker"></select>
+              </label>
+              <pre id="decomposition-report" class="log-box">暂无拆解报告</pre>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="decomposition">
+          <div class="editor-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>剧本理解</h3>
+                <div class="button-row">
+                  <button id="format-decomposition" type="button">格式化</button>
+                  <button id="apply-decomposition" type="button">应用修改</button>
+                </div>
+              </div>
+              <div class="artifact-loader">
+                <label>
+                  已保存理解产物
+                  <select id="decomposition-artifact-picker"></select>
+                </label>
+                <button id="refresh-decompositions" type="button">刷新</button>
+                <button id="load-decomposition-artifact" type="button">载入</button>
+              </div>
+              <textarea id="decomposition-json" class="json-editor" spellcheck="false"></textarea>
+            </section>
+            <section class="panel inspector">
+              <div class="panel-title">
+                <h3>理解检查</h3>
+                <button id="rebuild-world" type="button">用当前理解编译世界</button>
+              </div>
+              <div id="decomposition-inspector" class="inspector-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="graph">
+          <div class="editor-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>故事图谱</h3>
+                <div class="button-row">
+                  <button id="compile-script-graph" class="primary" type="button">从当前理解编译</button>
+                </div>
+              </div>
+              <div class="artifact-loader">
+                <label>
+                  已保存图谱
+                  <select id="script-graph-artifact-picker"></select>
+                </label>
+                <button id="refresh-script-graphs" type="button">刷新</button>
+                <button id="load-script-graph-artifact" type="button">载入</button>
+              </div>
+              <div id="script-graph-map" class="graph-map" aria-label="故事图谱可视节点"></div>
+              <div class="graph-browser" aria-label="故事图谱节点和关系">
+                <div class="graph-browser-panel">
+                  <div class="graph-browser-title">
+                    <strong>节点</strong>
+                    <span id="script-graph-node-count">0</span>
+                  </div>
+                  <div id="script-graph-node-list" class="graph-list"></div>
+                </div>
+                <div class="graph-browser-panel">
+                  <div class="graph-browser-title">
+                    <strong>关系</strong>
+                    <span id="script-graph-edge-count">0</span>
+                  </div>
+                  <div id="script-graph-edge-list" class="graph-list"></div>
+                </div>
+              </div>
+              <textarea id="script-graph-json" class="json-editor" spellcheck="false"></textarea>
+            </section>
+            <section class="panel inspector">
+              <div class="panel-title">
+                <h3>图谱检查</h3>
+              </div>
+              <div id="script-graph-inspector" class="inspector-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="prompts">
+          <div class="editor-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>视觉提示词计划</h3>
+                <div class="button-row">
+                  <button id="plan-visuals" class="primary" type="button">生成计划</button>
+                  <button id="apply-plan-edits" type="button">应用编辑</button>
+                </div>
+              </div>
+              <div class="artifact-loader">
+                <label>
+                  故事图谱来源
+                  <select id="visual-script-graph-picker"></select>
+                </label>
+                <button id="refresh-visual-script-graphs" type="button">刷新</button>
+                <button id="load-visual-script-graph" type="button">载入图谱</button>
+              </div>
+              <div class="control-grid">
+                <label class="toggle-field">
+                  <input id="include-characters" type="checkbox" checked />
+                  人物立绘
+                </label>
+                <label class="toggle-field">
+                  <input id="include-scenes" type="checkbox" checked />
+                  空场景
+                </label>
+                <label>
+                  人物上限
+                  <input id="max-characters" type="number" min="0" placeholder="不限" />
+                </label>
+                <label>
+                  场景上限
+                  <input id="max-scenes" type="number" min="0" placeholder="不限" />
+                </label>
+                <label>
+                  风格基底
+                  <input id="style-prompt" value="high quality game concept art" />
+                </label>
+              </div>
+              <textarea id="visual-plan-json" class="json-editor" spellcheck="false"></textarea>
+            </section>
+            <section class="panel inspector">
+              <div class="panel-title">
+                <h3>资产列表</h3>
+              </div>
+              <div id="asset-list" class="asset-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="images">
+          <div class="panel">
+            <div class="panel-title">
+              <h3>图片生成</h3>
+              <div class="button-row">
+                <button id="generate-images" class="primary" type="button">开始生成图片</button>
+              </div>
+            </div>
+            <div class="artifact-loader">
+              <label>
+                视觉计划来源
+                <select id="visual-asset-picker"></select>
+              </label>
+              <button id="refresh-visual-assets" type="button">刷新</button>
+              <button id="load-visual-asset" type="button">载入计划</button>
+            </div>
+            <div class="artifact-loader">
+              <label>
+                生成批次
+                <select id="visual-asset-run-picker"></select>
+              </label>
+              <button id="refresh-visual-asset-runs" type="button">刷新批次</button>
+              <button id="load-visual-asset-run" type="button">查看批次</button>
+              <button id="delete-visual-asset-run" class="danger" type="button">删除批次</button>
+            </div>
+            <div class="image-workbench">
+              <div id="image-grid" class="image-grid"></div>
+              <aside class="image-editor">
+                <div class="panel-title compact">
+                  <h3>编辑选中资产</h3>
+                  <button id="apply-image-asset-edit" type="button">应用修改</button>
+                </div>
+                <div id="image-editor-empty" class="inspector-item">
+                  <strong>未选择资产</strong>
+                  <small>点击左侧任一资产卡片后，可修改提示词、反向词和输出路径。</small>
+                </div>
+                <div id="image-editor-form" class="image-editor-form" hidden>
+                  <label>
+                    名称
+                    <input id="edit-image-display-name" />
+                  </label>
+                  <label>
+                    类型
+                    <select id="edit-image-kind">
+                      <option value="character">人物</option>
+                      <option value="scene">场景</option>
+                      <option value="item">道具</option>
+                      <option value="other">其他</option>
+                    </select>
+                  </label>
+                  <label>
+                    手动补充提示词
+                    <textarea id="edit-image-prompt" spellcheck="false"></textarea>
+                  </label>
+                  <label>
+                    反向提示词
+                    <textarea id="edit-image-negative-prompt" spellcheck="false"></textarea>
+                  </label>
+                  <label>
+                    输出路径
+                    <input id="edit-image-output-path" />
+                  </label>
+                </div>
+              </aside>
+            </div>
+            <pre id="image-log" class="log-box">暂无图片产物</pre>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="world">
+          <div class="editor-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>世界 JSON</h3>
+                <div class="button-row">
+                  <button id="generate-world-from-decomposition" type="button">世界 API 生成</button>
+                  <button id="save-world" class="primary" type="button">保存世界</button>
+                </div>
+              </div>
+              <div class="artifact-loader">
+                <label>
+                  故事图谱来源
+                  <select id="world-script-graph-picker"></select>
+                </label>
+                <button id="refresh-world-script-graphs" type="button">刷新</button>
+                <button id="load-world-script-graph" type="button">载入图谱</button>
+              </div>
+              <div class="artifact-loader">
+                <label>
+                  图片资产批次
+                  <select id="world-visual-asset-run-picker"></select>
+                </label>
+                <button id="refresh-world-visual-asset-runs" type="button">刷新</button>
+                <button id="load-world-visual-asset-run" type="button">载入资产</button>
+              </div>
+              <div id="world-source-summary" class="source-summary"></div>
+              <div id="world-asset-grid" class="world-asset-grid image-grid"></div>
+              <textarea id="world-json" class="json-editor" spellcheck="false"></textarea>
+            </section>
+            <section class="panel inspector">
+              <div class="panel-title">
+                <h3>世界摘要</h3>
+              </div>
+              <div id="world-inspector" class="inspector-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="lorebook">
+          <div class="editor-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>世界书 JSON</h3>
+                <div class="button-row">
+                  <button id="refresh-lorebook-worlds" type="button">刷新世界</button>
+                  <button id="load-lorebook-world" type="button">载入世界</button>
+                  <button id="generate-lorebook" type="button">生成世界书</button>
+                </div>
+              </div>
+              <label>
+                世界
+                <select id="lorebook-world-picker"></select>
+              </label>
+              <div id="lorebook-version-controls" class="split-fields" hidden>
+                <label>
+                  世界书版本
+                  <select id="lorebook-version-picker"></select>
+                </label>
+                <label>
+                  当前消费版本
+                  <button id="select-lorebook-version" type="button">使用此版本</button>
+                </label>
+              </div>
+              <div id="lorebook-source-summary" class="source-summary"></div>
+              <textarea id="lorebook-json" class="json-editor" spellcheck="false" readonly placeholder="NpcLorebookCreationAgent 生成的世界书会显示在这里"></textarea>
+            </section>
+            <section class="panel inspector">
+              <div class="panel-title">
+                <h3>世界书摘要</h3>
+              </div>
+              <div id="lorebook-inspector" class="inspector-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="playtest">
+          <div class="playtest-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>试玩控制</h3>
+                <div class="button-row">
+                  <button id="playtest-start" class="primary" type="button">启动/重置试玩</button>
+                  <button id="playtest-refresh" type="button">刷新状态</button>
+                </div>
+              </div>
+              <label>
+                试玩世界
+                <select id="playtest-world-picker"></select>
+              </label>
+              <div class="split-fields">
+                <label>
+                  移动到地点
+                  <select id="playtest-location"></select>
+                </label>
+                <label>
+                  世界动作
+                  <select id="playtest-action"></select>
+                </label>
+              </div>
+              <div class="button-row">
+                <button id="playtest-move" type="button">移动</button>
+                <button id="playtest-inspect" type="button">观察/搜证</button>
+                <button id="playtest-run-action" type="button">执行动作</button>
+              </div>
+              <div class="split-fields">
+                <label>
+                  对话 NPC
+                  <select id="playtest-target-npc"></select>
+                </label>
+                <label>
+                  玩家身份
+                  <input id="playtest-player-name" placeholder="默认使用当前玩家名" />
+                </label>
+              </div>
+              <label>
+                玩家输入
+                <textarea id="playtest-chat-message" class="chat-input playtest-chat-input" placeholder="像真实玩家一样输入一句话，询问、试探或推进剧情"></textarea>
+              </label>
+              <div class="button-row end">
+                <button id="playtest-send-chat" class="primary" type="button">发送对话</button>
+              </div>
+              <label>
+                自定义动作 JSON
+                <textarea id="playtest-custom-action" class="chat-input" spellcheck="false">{
+  "action": "inspect_location",
+  "payload": {}
+}</textarea>
+              </label>
+              <div class="button-row end">
+                <button id="playtest-run-custom" type="button">执行 JSON</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h3>任务与玩家状态</h3>
+              </div>
+              <div id="playtest-status" class="inspector-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h3>运行日志</h3>
+              </div>
+              <div id="playtest-log" class="conversation-log"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title">
+                <h3>Session JSON</h3>
+              </div>
+              <textarea id="playtest-session-json" class="json-editor" spellcheck="false" readonly></textarea>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-page" data-page="npc">
+          <div class="two-column">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>NPC 对话调试</h3>
+                <button id="start-world" type="button">启动世界</button>
+              </div>
+              <div class="artifact-loader">
+                <label>
+                  世界 JSON 来源
+                  <select id="npc-world-picker"></select>
+                </label>
+                <button id="refresh-npc-worlds" type="button">刷新</button>
+                <button id="load-npc-world" type="button">载入世界</button>
+              </div>
+              <div id="npc-lorebook-version-controls" class="artifact-loader" hidden>
+                <label>
+                  消费世界书版本
+                  <select id="npc-lorebook-version-picker"></select>
+                </label>
+                <button id="select-npc-lorebook-version" type="button">使用此版本</button>
+              </div>
+              <div id="npc-source-summary" class="source-summary"></div>
+              <div class="artifact-loader npc-runtime-context-toolbar">
+                <label>
+                  角色运行上下文
+                  <select id="npc-runtime-state-picker"></select>
+                </label>
+                <button id="refresh-npc-runtime-context" type="button">刷新上下文</button>
+              </div>
+              <div id="npc-runtime-context" class="source-summary"></div>
+              <div class="split-fields">
+                <label>
+                  目标 NPC
+                  <select id="target-npc"></select>
+                </label>
+                <label>
+                  当前位置
+                  <select id="chat-location"></select>
+                </label>
+              </div>
+              <label>
+                玩家目标
+                <input id="player-goal" placeholder="这轮测试希望玩家推进什么" />
+              </label>
+              <label>
+                玩家输入
+                <textarea id="chat-message" class="chat-input" placeholder="输入一句话测试 NPC"></textarea>
+              </label>
+              <div class="button-row end">
+                <button id="send-chat" class="primary" type="button">发送</button>
+                <button id="start-group-chat" type="button">开始群聊</button>
+                <button id="stop-group-chat" type="button" disabled>停止群聊</button>
+                <button id="tick-agent" type="button">Tick</button>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h3>运行日志</h3>
+                <button id="clear-npc-log" type="button">清空</button>
+              </div>
+              <div id="npc-log" class="conversation-log"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h3>校验后 JSON</h3>
+              </div>
+              <textarea id="npc-response-json" class="json-editor npc-json-viewer" readonly placeholder="NPC 返回并通过校验后的 JSON 会显示在这里"></textarea>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script src="/static/pipeline.js?v=creator-nav-v1"></script>
+  </body>
+</html>

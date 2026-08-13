@@ -1,0 +1,161 @@
+{
+  "world_id": "sandbox_1",
+  "name": "青岚修真界 MVP",
+  "description": "独立修仙世界最小闭环：接取试炼、问询药师、入谷取灵印、回宗复命。",
+  "lore": "【世界背景】青岚宗位于云海边陲，宗门弟子以灵印证明试炼资格。\n【核心规则】玩家需要先找掌门接取试炼，再前往药庐了解灵雾谷风险，然后到灵雾谷入口，取得一枚灵印，最后回宗复命。\n【玩家处境】玩家是外门弟子，想获得进入内门考核的资格。\n【NPC约束】掌门只认可灵印；药师能提示灵雾谷风险；守谷人只在玩家持有试炼令时放行。\n【胜利条件】玩家状态中 trial_complete=true，并完成 report_trial 任务。",
+  "opening_scene": "青岚宗晨钟刚落，外门弟子林澈站在问道殿前。掌门玄微子准备发放灵雾谷试炼令。",
+  "player": {
+    "name": "林澈",
+    "location": "问道殿",
+    "role": "青岚宗外门弟子",
+    "status": "尚未接取试炼。",
+    "realm": "炼气一层",
+    "spirit_seal": false,
+    "trial_token": false,
+    "trial_complete": false
+  },
+  "npcs": [
+    {
+      "id": "sect_leader",
+      "name": "玄微子",
+      "role": "青岚宗掌门",
+      "personality": "沉稳、克制、重视规矩。只认可试炼结果，不被空话打动。",
+      "goals": ["发布灵雾谷试炼", "确认玩家是否带回灵印", "决定是否给玩家内门考核资格"],
+      "location": "问道殿"
+    },
+    {
+      "id": "herbalist",
+      "name": "苏药师",
+      "role": "宗门药师",
+      "personality": "温和、细心，了解灵雾谷的危险和灵草分布。",
+      "goals": ["提醒玩家准备清心散", "解释灵雾谷雾毒风险"],
+      "location": "药庐"
+    },
+    {
+      "id": "valley_guard",
+      "name": "守谷人韩执",
+      "role": "灵雾谷守门人",
+      "personality": "寡言、守规矩，只看令牌不看人情。",
+      "goals": ["确认玩家是否持有试炼令", "放行合格弟子进入灵雾谷"],
+      "location": "灵雾谷入口"
+    }
+  ],
+  "story_goals": [
+    "向玄微子接取灵雾谷试炼",
+    "前往药庐询问灵雾谷风险",
+    "前往灵雾谷入口",
+    "进入灵雾谷取得灵印",
+    "回问道殿向玄微子复命"
+  ],
+  "tasks": [
+    {
+      "id": "accept_trial",
+      "title": "接取灵雾谷试炼",
+      "description": "与玄微子对话并获得试炼令。",
+      "status": "pending"
+    },
+    {
+      "id": "ask_herbalist",
+      "title": "询问灵雾谷风险",
+      "description": "向苏药师了解雾毒和准备事项。",
+      "status": "pending"
+    },
+    {
+      "id": "enter_valley",
+      "title": "前往灵雾谷",
+      "description": "带着试炼令到达灵雾谷入口。",
+      "status": "pending"
+    },
+    {
+      "id": "gain_seal",
+      "title": "取得灵印",
+      "description": "在灵雾谷中取得一枚灵印。",
+      "status": "pending"
+    },
+    {
+      "id": "report_trial",
+      "title": "回宗复命",
+      "description": "回问道殿向玄微子提交灵印。",
+      "status": "pending"
+    }
+  ],
+  "actions": [
+    {
+      "id": "accept_trial",
+      "label": "接取试炼令",
+      "description": "世界动作：获得试炼令，并完成接取试炼任务。",
+      "effect": {
+        "set_player": {
+          "trial_token": true,
+          "status": "已获得灵雾谷试炼令。"
+        },
+        "complete_task": "accept_trial",
+        "active_npc_id": "sect_leader",
+        "scene": "玄微子交给林澈一枚青色试炼令。"
+      }
+    },
+    {
+      "id": "go_apothecary",
+      "label": "前往药庐",
+      "description": "世界动作：移动到药庐，可与苏药师对话。",
+      "effect": {
+        "set_player": {
+          "location": "药庐"
+        },
+        "complete_task": "ask_herbalist",
+        "active_npc_id": "herbalist",
+        "scene": "药庐里草木清苦，苏药师正在分拣灵草。"
+      }
+    },
+    {
+      "id": "go_valley",
+      "label": "前往灵雾谷入口",
+      "description": "世界动作：移动到灵雾谷入口，可与守谷人对话。",
+      "effect": {
+        "set_player": {
+          "location": "灵雾谷入口"
+        },
+        "complete_task": "enter_valley",
+        "active_npc_id": "valley_guard",
+        "scene": "灵雾谷入口白雾翻涌，守谷人韩执立在石门旁。"
+      }
+    },
+    {
+      "id": "gain_spirit_seal",
+      "label": "进入灵雾谷取得灵印",
+      "description": "世界动作：取得灵印，完成核心试炼。",
+      "effect": {
+        "set_player": {
+          "location": "灵雾谷",
+          "spirit_seal": true,
+          "status": "已取得灵印。"
+        },
+        "complete_task": "gain_seal",
+        "scene": "林澈穿过灵雾，在古藤下取得一枚微光灵印。"
+      }
+    },
+    {
+      "id": "report_trial",
+      "label": "回问道殿复命",
+      "description": "世界动作：提交灵印，完成 MVP 闭环。",
+      "effect": {
+        "set_player": {
+          "location": "问道殿",
+          "trial_complete": true,
+          "status": "已完成灵雾谷试炼。"
+        },
+        "complete_task": "report_trial",
+        "active_npc_id": "sect_leader",
+        "scene": "林澈回到问道殿，将灵印呈给玄微子。"
+      }
+    }
+  ],
+  "initial_memories": [
+    "玄微子只认可灵雾谷灵印作为内门考核资格。",
+    "苏药师知道灵雾谷雾毒风险。",
+    "守谷人韩执只会放行持有试炼令的弟子。"
+  ],
+  "metadata": {
+    "mvp_loop": ["接取试炼令", "前往药庐", "前往灵雾谷入口", "进入灵雾谷取得灵印", "回问道殿复命"]
+  }
+}

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1018" />
+    <title>互动剧情播放器</title>
+    <link rel="stylesheet" href="/static/play.css?v=20260806-4" />
+  </head>
+  <body>
+    <main id="game" class="game-shell" aria-live="polite">
+      <div id="scene-background" class="scene-background" aria-hidden="true"></div>
+      <div class="scene-vignette" aria-hidden="true"></div>
+      <div class="ink-cloud cloud-one" aria-hidden="true"></div>
+      <div class="ink-cloud cloud-two" aria-hidden="true"></div>
+      <div id="floating-motes" class="floating-motes" aria-hidden="true"></div>
+
+      <header class="game-hud">
+        <div class="work-identity">
+          <span class="seal" aria-hidden="true">剧</span>
+          <div>
+            <p id="world-kicker">互动叙事</p>
+            <h1 id="world-title">互动剧情</h1>
+          </div>
+        </div>
+        <div class="scene-meta">
+          <span id="scene-location">等待载入</span>
+          <span id="save-status" class="save-status">尚未载入</span>
+        </div>
+        <nav class="game-actions" aria-label="游戏控制">
+          <button id="auto-button" type="button" aria-pressed="false">自动</button>
+          <button id="skip-button" type="button" aria-pressed="false">快显</button>
+          <button id="history-button" type="button">履历</button>
+          <button id="restart-button" type="button">重来</button>
+          <button id="library-button" type="button">作品大厅</button>
+          <a id="creator-link" href="/creator">创作台</a>
+        </nav>
+      </header>
+
+      <a id="library-shortcut" class="library-shortcut" href="/play" aria-label="返回作品大厅">
+        <span aria-hidden="true">册</span>
+        <strong>作品大厅</strong>
+        <small>切换游戏</small>
+      </a>
+
+      <section class="character-stage" aria-label="角色舞台">
+        <div id="portrait-left" class="portrait-slot left" aria-hidden="true"></div>
+        <div id="portrait-center" class="portrait-slot center" aria-hidden="true"></div>
+        <div id="portrait-right" class="portrait-slot right" aria-hidden="true"></div>
+      </section>
+
+      <aside id="objective-card" class="objective-card" hidden>
+        <span>当前目标</span>
+        <p id="objective-text"></p>
+      </aside>
+
+      <section id="choice-layer" class="choice-layer" aria-label="剧情选项" hidden>
+        <p class="choice-label">此刻，你决定——</p>
+        <div id="choice-list" class="choice-list"></div>
+      </section>
+
+      <section id="dialogue-panel" class="dialogue-panel" tabindex="0" aria-label="剧情对白">
+        <div class="dialogue-ornament" aria-hidden="true"></div>
+        <div id="speaker-name" class="speaker-name">旁白</div>
+        <p id="dialogue-text" class="dialogue-text">正在载入剧情……</p>
+        <div id="continue-hint" class="continue-hint" hidden>
+          <span>点击或按空格继续</span><i aria-hidden="true"></i>
+        </div>
+      </section>
+
+      <section id="world-picker" class="full-overlay world-picker" hidden>
+        <div class="picker-card">
+          <div class="picker-heading">
+            <div>
+              <p class="eyebrow">STORY LIBRARY</p>
+              <h2>作品大厅</h2>
+            </div>
+            <button id="world-picker-close" type="button" aria-label="关闭作品库" hidden>×</button>
+          </div>
+          <p>选择一部作品开始游玩。进入游戏后，随时点击右侧固定的“作品大厅”返回这里。</p>
+          <div id="world-list" class="world-list"></div>
+          <a class="outline-link" href="/creator">返回 Creator 创作剧情</a>
+        </div>
+      </section>
+
+      <section id="loading-overlay" class="full-overlay loading-overlay">
+        <div class="loading-mark" aria-hidden="true"><span></span></div>
+        <p id="loading-title">正在载入作品</p>
+        <small id="loading-detail">读取剧情与玩家存档</small>
+      </section>
+
+      <section id="ending-overlay" class="full-overlay ending-overlay" hidden>
+        <div class="ending-card">
+          <p class="eyebrow">STORY COMPLETE</p>
+          <span class="ending-seal">终</span>
+          <h2 id="ending-title">故事终章</h2>
+          <p id="ending-copy"></p>
+          <div class="ending-actions">
+            <button id="post-story-button" class="primary-action" type="button" hidden>进入后日谈</button>
+            <button id="ending-history-button" type="button">回看履历</button>
+            <button id="ending-library-button" type="button">选择其他作品</button>
+            <button id="ending-restart-button" type="button">从头再来</button>
+          </div>
+          <small id="post-story-note" hidden>自由聊天会读取本次结局与玩家状态，但不会改写已完成的固定主线。</small>
+        </div>
+      </section>
+
+      <aside id="history-drawer" class="side-drawer" aria-label="剧情履历" aria-hidden="true">
+        <header>
+          <div><p class="eyebrow">PLAY LOG</p><h2>剧情履历</h2></div>
+          <button id="history-close" type="button" aria-label="关闭履历">×</button>
+        </header>
+        <div id="history-list" class="history-list"></div>
+      </aside>
+
+      <aside id="post-story-drawer" class="post-story-drawer" aria-label="后日谈自由聊天" aria-hidden="true">
+        <header>
+          <div>
+            <p class="eyebrow">AFTER STORY</p>
+            <h2>结局之后</h2>
+            <span>自由交谈 · 可触发后日谈事件</span>
+          </div>
+          <button id="post-story-close" type="button" aria-label="关闭后日谈">×</button>
+        </header>
+        <label class="npc-select-label">交谈对象
+          <select id="post-story-npc"></select>
+        </label>
+        <div id="post-story-log" class="post-story-log"></div>
+        <form id="post-story-form" class="post-story-form">
+          <textarea id="post-story-input" rows="3" maxlength="4000" placeholder="结局之后，你还想对她说什么？" required></textarea>
+          <button type="submit">发送</button>
+        </form>
+      </aside>
+
+      <button id="drawer-scrim" class="drawer-scrim" type="button" aria-label="关闭侧栏" hidden></button>
+      <div id="toast" class="toast" role="status" hidden></div>
+    </main>
+
+    <script src="/static/play.js?v=20260806-8"></script>
+  </body>
+</html>

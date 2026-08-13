@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NPC Agent Creator</title>
+    <link rel="stylesheet" href="/static/creator.css?v=20260807-15" />
+  </head>
+  <body>
+    <main class="creator-shell">
+      <aside class="library-panel">
+        <header class="brand-block">
+          <p class="eyebrow">Creator Platform</p>
+          <h1>互动剧情创作器</h1>
+          <p>节点管理剧情，编译为 NPC Agent 可运行世界。</p>
+        </header>
+
+        <section class="panel compact-panel">
+          <div class="panel-title">
+            <h2>项目</h2>
+            <button id="refresh-worlds" type="button" title="刷新世界列表">刷新</button>
+          </div>
+          <label class="project-name-field">
+            作品名称
+            <input id="project-name" placeholder="先给这部互动剧情取一个名字" autocomplete="off" />
+          </label>
+          <div class="current-project-context">
+            <span>当前编辑</span>
+            <strong id="current-project-name">未命名互动剧情</strong>
+            <code id="current-project-id"></code>
+            <small>修改名称只会重命名当前 ID；需要独立副本请使用“另存为新作品”。</small>
+          </div>
+          <label>
+            已保存世界
+            <select id="world-picker"></select>
+          </label>
+          <div class="button-row">
+            <button id="load-world" type="button">载入</button>
+            <button id="new-project" type="button">新建</button>
+          </div>
+          <div class="button-row">
+            <button id="save-as-new-world" type="button">另存为新作品</button>
+            <button id="recover-visual-assets" type="button">恢复最近生成美术</button>
+          </div>
+          <div id="project-action-status" class="project-action-status" role="status" aria-live="polite" hidden>
+            <strong id="project-action-title"></strong>
+            <span id="project-action-detail"></span>
+          </div>
+          <label>
+            版本快照
+            <select id="creator-version-picker">
+              <option value="">暂无快照</option>
+            </select>
+          </label>
+          <div class="button-row">
+            <button id="create-version" type="button">创建快照</button>
+            <button id="restore-version" type="button" disabled>恢复快照</button>
+          </div>
+        </section>
+
+        <section class="panel compact-panel">
+          <div class="panel-title">
+            <h2>添加节点</h2>
+          </div>
+          <div class="node-tools">
+            <button data-add-node="story" type="button"><span class="node-dot story"></span>剧情</button>
+            <button data-add-node="choice" type="button"><span class="node-dot choice"></span>选择</button>
+            <button data-add-node="ending" type="button"><span class="node-dot ending"></span>结局</button>
+          </div>
+        </section>
+
+        <section class="panel compact-panel">
+          <div class="panel-title">
+            <h2>世界设定</h2>
+          </div>
+          <label>
+            世界 ID
+            <input id="world-id" />
+          </label>
+          <label>
+            名称
+            <input id="world-name" />
+          </label>
+          <label>
+            玩家名
+            <input id="player-name" />
+          </label>
+          <label>
+            初始地点
+            <input id="player-location" />
+          </label>
+          <label>
+            世界规则
+            <textarea id="world-lore" rows="5"></textarea>
+          </label>
+        </section>
+
+        <section class="panel compact-panel">
+          <div class="panel-title">
+            <h2>角色</h2>
+            <button id="add-character" type="button">添加</button>
+          </div>
+          <div id="character-list" class="entity-list"></div>
+        </section>
+
+        <section class="panel compact-panel">
+          <div class="panel-title">
+            <h2>属性与道具</h2>
+          </div>
+          <label>
+            玩家属性 JSON
+            <textarea id="player-stats-json" rows="5"></textarea>
+          </label>
+          <label>
+            初始道具，每行一个
+            <textarea id="items-text" rows="4"></textarea>
+          </label>
+        </section>
+      </aside>
+
+      <section class="canvas-column">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Story Graph</p>
+            <h2 id="project-title">未命名互动剧情</h2>
+          </div>
+          <div class="topbar-actions">
+            <a href="/pipeline" class="ghost-link">Pipeline</a>
+            <button id="undo-project" type="button" title="撤销最近修改" disabled>撤销</button>
+            <button id="redo-project" type="button" title="重做最近修改" disabled>重做</button>
+            <button id="import-world-json" type="button">导入世界 JSON</button>
+            <button id="compile-preview" type="button">预览编译</button>
+            <button id="save-creator-world" class="primary" type="button">保存草稿</button>
+            <button id="open-player" class="player-launch" type="button">发布并打开玩家端</button>
+            <button id="start-playtest" type="button">启动试玩</button>
+          </div>
+        </header>
+
+        <section class="canvas-panel" title="拖动空白区域可向任意方向自由平移；Shift + 滚轮横向移动；Ctrl + 滚轮缩放">
+          <div id="canvas-space" class="canvas-space">
+            <div id="canvas-content" class="canvas-content">
+              <svg id="edge-layer" class="edge-layer"></svg>
+              <div id="node-canvas" class="node-canvas" aria-label="剧情节点画布"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="creator-command-dock" aria-labelledby="creator-command-title">
+          <div id="creator-dock-resizer" class="creator-dock-resizer" role="separator" aria-label="调整 AI 创作区高度" aria-orientation="horizontal" tabindex="0"></div>
+          <div class="command-dock-header">
+            <div>
+              <p class="eyebrow">AI Creator Agent</p>
+              <h2 id="creator-command-title">描述目标，Agent 自动调用创作工具</h2>
+            </div>
+            <div class="command-dock-actions">
+              <button id="clear-creator-agent" type="button">清空记录</button>
+            </div>
+          </div>
+          <div class="command-dock-body">
+            <div class="creator-command-scroll" tabindex="0" aria-label="AI Creator 内容">
+              <div class="creator-entry-guide">
+                <strong>一个入口，完成全部创作</strong>
+                <p>直接描述完整剧情、局部修改、美术生成或发布要求。Creator 会先给出工具执行预览，经你确认后才调用 Pipeline。</p>
+              </div>
+              <details class="creator-tool-catalog">
+                <summary>查看 Creator 可调用的 Pipeline 工具</summary>
+                <div id="creator-tool-list" class="creator-tool-list"><span>正在读取工具目录…</span></div>
+              </details>
+              <details id="creator-tool-log-panel" class="creator-tool-log-panel">
+                <summary>工具执行日志 <span id="creator-tool-log-count">0 条</span></summary>
+                <div id="creator-tool-log" class="play-log creator-tool-log"></div>
+              </details>
+              <section class="creator-conversation" aria-labelledby="creator-history-title">
+                <div class="creator-history-heading">
+                  <strong id="creator-history-title">创作对话</strong>
+                  <span id="creator-history-count">0 条</span>
+                </div>
+                <div id="creator-agent-log" class="play-log creator-agent-log" aria-live="polite">
+                  <p id="creator-history-empty" class="creator-history-empty">发送创作要求后，对话会保存在当前项目中。</p>
+                </div>
+              </section>
+              <section id="creator-change-preview" class="change-preview" hidden>
+                <div class="panel-title mini">
+                  <h3>待确认操作与工具</h3>
+                  <span id="change-validation-badge" class="status-badge"></span>
+                </div>
+                <p id="change-preview-reply" class="change-preview-reply"></p>
+                <div id="change-preview-report" class="change-preview-report"></div>
+                <ol id="change-operation-list" class="change-operation-list"></ol>
+                <div class="button-row">
+                  <button id="reject-creator-change" type="button">放弃</button>
+                  <button id="apply-creator-change" class="primary" type="button">确认执行</button>
+                </div>
+              </section>
+            </div>
+            <form id="creator-agent-form" class="creator-command-form">
+              <div id="creator-agent-status" class="creator-agent-status" role="status" aria-live="polite" hidden>
+                <span id="creator-agent-spinner" class="status-spinner" aria-hidden="true"></span>
+                <span class="creator-agent-status-copy">
+                  <strong id="creator-agent-status-title"></strong>
+                  <span id="creator-agent-status-detail"></span>
+                </span>
+                <span id="creator-agent-elapsed" class="creator-agent-elapsed"></span>
+                <button id="cancel-creator-agent" type="button">取消</button>
+              </div>
+              <label class="creator-command-input">
+                <span class="creator-command-label">给 Creator Agent 发消息</span>
+                <textarea id="creator-agent-message" rows="3" aria-label="自然语言创作指令" placeholder="描述创作目标，或直接询问当前剧情。Enter 发送，Shift + Enter 换行。"></textarea>
+              </label>
+              <button id="preview-creator-change" class="primary creator-send-button" type="submit">发送</button>
+            </form>
+          </div>
+        </section>
+      </section>
+
+      <aside class="inspector-panel">
+        <section class="panel inspector-card">
+          <div class="panel-title">
+            <h2>节点属性</h2>
+            <button id="delete-node" class="danger" type="button">删除</button>
+          </div>
+          <div id="node-empty" class="empty-state">选择一个节点后编辑内容、条件和效果。</div>
+          <form id="node-form" class="node-form" hidden>
+            <label>
+              节点 ID
+              <input id="node-id" />
+            </label>
+            <label>
+              标题
+              <input id="node-title" />
+            </label>
+            <label>
+              类型
+              <select id="node-type">
+                <option value="story">剧情</option>
+                <option value="choice">选择</option>
+                <option value="ending">结局</option>
+              </select>
+            </label>
+            <label>
+              说话人 / 角色
+              <select id="node-character"></select>
+            </label>
+            <label>
+              背景图
+              <input id="node-background" placeholder="/images/scene.png" />
+            </label>
+            <label>
+              正文
+              <textarea id="node-content" rows="7"></textarea>
+            </label>
+            <label>
+              进入条件 JSON
+              <textarea id="node-conditions" rows="4"></textarea>
+            </label>
+            <label>
+              节点效果 JSON
+              <textarea id="node-effects" rows="4"></textarea>
+            </label>
+            <label>
+              默认下一个节点
+              <select id="node-next"></select>
+            </label>
+            <div class="form-block">
+              <div class="panel-title mini">
+                <h3>选项</h3>
+                <button id="add-choice" type="button">添加选项</button>
+              </div>
+              <div id="choice-list" class="choice-list"></div>
+            </div>
+          </form>
+        </section>
+
+        <section id="playtest-panel" class="panel runtime-card">
+          <div class="panel-title">
+            <h2>试玩</h2>
+            <button id="refresh-session" type="button">刷新</button>
+          </div>
+          <div id="playtest-status" class="playtest-status" role="status" aria-live="polite" hidden>
+            <strong id="playtest-status-title"></strong>
+            <span id="playtest-status-detail"></span>
+          </div>
+          <div id="runtime-state" class="runtime-state" aria-live="polite">
+            <span id="runtime-location">未启动</span>
+            <span id="runtime-progress">等待启动试玩</span>
+            <span id="runtime-inventory">道具：-</span>
+          </div>
+          <div id="play-log" class="play-log"></div>
+          <form id="chat-form" class="chat-form">
+            <select id="target-npc"></select>
+            <textarea id="chat-message" rows="3" placeholder="对当前 NPC 说些什么"></textarea>
+            <button class="primary" type="submit">发送</button>
+          </form>
+        </section>
+
+        <section class="panel runtime-card">
+          <div class="panel-title">
+            <h2>编译结果</h2>
+          </div>
+          <textarea id="compiled-json" class="json-viewer" readonly></textarea>
+        </section>
+      </aside>
+    </main>
+
+    <aside id="playtest-toast" class="playtest-toast" role="status" aria-live="polite" hidden>
+      <span class="playtest-toast-copy">
+        <strong id="playtest-toast-title"></strong>
+        <span id="playtest-toast-detail"></span>
+      </span>
+      <button id="open-playtest-panel" type="button">查看试玩</button>
+    </aside>
+
+    <input id="world-json-file" type="file" accept=".json" hidden />
+  <script src="/static/creator.js?v=20260807-24"></script>
+  </body>
+</html>

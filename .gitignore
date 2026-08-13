@@ -1,0 +1,26 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.log
+tmp_*.txt
+output/
+node_modules/
+dist/
+data/memory/
+data/pipeline_config.json
+data/models/rembg/
+data/script_decompositions/
+data/script_graphs/
+data/sessions/
+data/worlds/*
+!data/worlds/sandbox_1.json
+python
+剧本-测试/
+*.zip
+
+# 本地备份目录（非项目内容）
+.git_bak_*

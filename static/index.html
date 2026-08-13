@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>通用 NPC Agent 沙盒</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">Universal NPC Agent</p>
+          <h1>世界观沙盒</h1>
+          <p>每个世界观是一套独立配置。Agent 只通过统一接口进入世界，不把剧情写死在 Agent 里。</p>
+        </div>
+
+        <section class="generator-card">
+          <h3>Agent 生成世界观</h3>
+          <label>
+            故事模板
+            <select id="generator-template">
+              <option value="freeform">自由生成 / 不套模板</option>
+              <option value="three_act_growth">三幕式成长线</option>
+              <option value="short_drama_reversal">短剧反转线</option>
+              <option value="mystery_investigation">探案解谜线</option>
+              <option value="management_growth">经营养成线</option>
+              <option value="relationship_route">关系攻略线</option>
+              <option value="adventure_battle">冒险战斗线</option>
+              <option value="document_adaptation">文档改编线</option>
+            </select>
+          </label>
+          <label>
+            主题关键词
+            <input id="generator-theme" placeholder="例如 退婚逆袭 / 身份反转 / 宗门试炼" />
+          </label>
+          <label>
+            复杂度预设
+            <select id="generator-complexity">
+              <option value="simple">简单：3 NPC / 5 任务 / 5 动作</option>
+              <option value="medium" selected>中等：5 NPC / 8 任务 / 8 动作</option>
+              <option value="complex">复杂：8 NPC / 12 任务 / 14 动作</option>
+              <option value="ultra">超复杂：12 NPC / 18 任务 / 22 动作</option>
+            </select>
+          </label>
+          <div class="field-grid three compact">
+            <label>
+              NPC 数
+              <input id="generator-min-npcs" type="number" min="1" value="5" />
+            </label>
+            <label>
+              任务数
+              <input id="generator-min-tasks" type="number" min="1" value="8" />
+            </label>
+            <label>
+              动作数
+              <input id="generator-min-actions" type="number" min="1" value="8" />
+            </label>
+          </div>
+          <label class="checkbox-field">
+            <input id="generator-final-gate" type="checkbox" checked />
+            最终目标必须依赖前置任务和进度，不能一键直接完成
+          </label>
+          <label>
+            玩家名
+            <input id="generator-player" value="林澈" />
+          </label>
+          <button id="generate-world" class="primary" type="button">生成可玩世界观</button>
+          <p id="generator-status" class="generator-status" aria-live="polite"></p>
+          <p class="field-help">不会只生成一段背景，而是生成 NPC、任务、动作和可跑完的 MVP 闭环。</p>
+          <div class="import-box">
+            <label>
+              导入世界观文档
+              <input id="import-world-file" type="file" accept=".txt,.md,.json,.html,.htm,.rtf,.docx,.pdf" />
+            </label>
+            <label>
+              导入后世界名（可选）
+              <input id="import-world-name" placeholder="例如 BEJ48 梦想试炼场" />
+            </label>
+            <button id="import-world" type="button">从文档导入世界观</button>
+            <p id="import-status" class="generator-status" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <button id="create-world" type="button">创建空白世界观</button>
+        <div id="world-list" class="world-list"></div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">当前世界</p>
+            <h2 id="current-world-name">请选择一个世界观</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="load-example" type="button">填充青岚 MVP</button>
+            <button id="save-world" type="button">保存设定</button>
+            <button id="clear-chat" type="button">清空记录</button>
+            <button id="delete-world" class="danger" type="button">删除世界观</button>
+            <button id="start-world" class="primary" type="button">开始游戏</button>
+          </div>
+        </header>
+
+        <section class="grid">
+          <article class="panel editor-panel">
+            <h3>后台设定</h3>
+            <label>
+              世界 ID
+              <input id="world-id" placeholder="例如 sandbox_xianxia_school" />
+            </label>
+            <label>
+              世界名称
+              <input id="world-name" placeholder="例如 青岚修真界 MVP" />
+            </label>
+            <label>
+              简介
+              <input id="world-description" placeholder="一句话说明这个沙盒" />
+            </label>
+            <label>
+              世界观 / 规则 / 背景
+              <textarea id="world-lore" rows="7"></textarea>
+            </label>
+            <p class="field-help">写法建议：背景设定 + 核心规则 + 玩家处境 + NPC 约束 + 胜利条件。也可以直接用左侧生成器。</p>
+            <label>
+              开场场景
+              <textarea id="opening-scene" rows="3"></textarea>
+            </label>
+
+            <section class="form-card">
+              <div>
+                <h4>玩家设定</h4>
+                <p class="field-help">普通字段直接填；不同游戏需要的战力、阵营、背包等字段，放到高级扩展 JSON。</p>
+              </div>
+              <div class="field-grid two">
+                <label>
+                  玩家名称
+                  <input id="player-name-config" placeholder="例如 林澈 / 调查员 / 勇者" />
+                </label>
+                <label>
+                  起始地点
+                  <input id="player-location-config" placeholder="例如 山门主殿 / 酒馆 / 空间站" />
+                </label>
+              </div>
+              <label>
+                身份 / 职业 / 阵营
+                <input id="player-role-config" placeholder="例如 外院弟子 / 王国骑士 / 公司探员" />
+              </label>
+              <label>
+                初始状态
+                <textarea id="player-state-config" rows="3" placeholder="例如 尚未接取试炼，还没有获得灵印。"></textarea>
+              </label>
+              <label>
+                高级扩展 JSON
+                <textarea id="player-extra-json" rows="5" placeholder='例如 {"battle_power":130,"realm":"炼气一层","inventory":[]}'></textarea>
+              </label>
+            </section>
+
+            <label>
+              NPC JSON 数组
+              <textarea id="npcs-json" rows="8"></textarea>
+            </label>
+            <div class="inline-actions">
+              <button id="add-npc-template" type="button">添加 NPC 模板</button>
+            </div>
+
+            <label>
+              剧情目标，每行一个
+              <textarea id="goals-text" rows="4"></textarea>
+            </label>
+            <label>
+              任务 JSON 数组
+              <textarea id="tasks-json" rows="7"></textarea>
+            </label>
+            <div class="inline-actions">
+              <button id="add-task-template" type="button">添加任务模板</button>
+            </div>
+
+            <label>
+              动作 JSON 数组
+              <textarea id="actions-json" rows="6"></textarea>
+            </label>
+            <p class="field-help">动作是后台世界规则：由 NPC 对话、状态校验或 Agent 决策触发；运行台不直接暴露为通关按钮。</p>
+            <div class="inline-actions">
+              <button id="add-action-template" type="button">添加动作模板</button>
+            </div>
+          </article>
+
+          <article class="panel play-panel">
+            <div class="play-head">
+              <div>
+                <h3>游戏运行台</h3>
+                <p id="play-status" class="muted">先和 NPC 对话获得线索；移动、找人和观察只处理你明确输入的当前行动。</p>
+              </div>
+            </div>
+
+            <section class="runtime-actions">
+              <div class="section-head">
+                <div>
+                  <h4>地点行动</h4>
+                  <p class="field-help">“前往”只改变地点和可对话对象；“执行”用于观察、找人、查看线索，不直接完成剧情任务。</p>
+                </div>
+              </div>
+              <form id="location-form" class="location-actions">
+                <input id="location-input" placeholder="输入要前往的地点，例如 药庐 / 灵雾谷入口" />
+                <button id="move-location" class="primary" type="submit">前往</button>
+              </form>
+              <form id="look-form" class="location-actions">
+                <input id="look-input" placeholder="找人或查看，例如 找苏药师 / 查看四周" />
+                <button id="look-around" type="submit">执行</button>
+              </form>
+            </section>
+
+            <div id="messages" class="messages">
+              <div class="bubble system">
+                <strong>系统</strong>
+                <p>选择、创建或生成世界观后，点击“开始游戏”。通过和 NPC 对话获取目标与世界信息，再手动决定去哪里、找谁、查看什么。</p>
+              </div>
+            </div>
+
+            <form id="chat-form" class="composer">
+              <select id="target-npc" aria-label="对话对象"></select>
+              <input id="player-name" value="玩家" aria-label="玩家名" />
+              <div id="current-location" class="composer-status">地点：起始地点</div>
+              <textarea id="message" rows="3" placeholder="输入你想对当前 NPC 说的话..." required></textarea>
+              <button id="send" class="primary" type="submit">发送</button>
+            </form>
+          </article>
+
+          <aside class="panel state-panel">
+            <h3>运行状态</h3>
+            <section>
+              <h4>冒险目标</h4>
+              <ol id="mvp-checklist" class="check-list">
+                <li>配置或生成世界目标、NPC、任务、动作。</li>
+                <li>点击开始游戏。</li>
+                <li>通过 NPC 对话获得目标、地点和人物线索。</li>
+                <li>手动移动、找人或观察，确认当前地点变化。</li>
+                <li>完成关键行动后看进度是否更新。</li>
+              </ol>
+            </section>
+            <section>
+              <h4>任务进度</h4>
+              <p id="quest-progress" class="state-box muted">暂无</p>
+            </section>
+            <section>
+              <h4>用户状态 / 物品栏</h4>
+              <div id="player-summary" class="state-box player-summary muted">暂无</div>
+            </section>
+            <section>
+              <h4>当前位置 NPC</h4>
+              <div id="nearby-npcs" class="state-box npc-list muted">暂无</div>
+            </section>
+            <section>
+              <h4>当前实体</h4>
+              <pre id="active-entity" class="state-box muted">{}</pre>
+            </section>
+            <section>
+              <h4>玩家状态</h4>
+              <pre id="player-state" class="state-box muted">{}</pre>
+            </section>
+            <section>
+              <div class="section-head">
+                <h4>线索笔记</h4>
+                <button id="toggle-suggestions" type="button">隐藏</button>
+              </div>
+              <div id="suggested-actions" class="action-list"></div>
+            </section>
+            <section>
+              <h4>记忆 / CRAG 调试</h4>
+              <div class="memory-query">
+                <input id="memory-query" placeholder="查询当前世界记忆" />
+                <button id="query-memory" type="button">检索</button>
+              </div>
+              <pre id="memory-result" class="state-box muted">暂无</pre>
+            </section>
+            <section>
+              <h4>体验反馈 / 学习画像</h4>
+              <p id="experience-profile" class="state-box muted">暂无学习样本。</p>
+              <div class="experience-feedback">
+                <select id="experience-pacing">
+                  <option value="immersive">沉浸，节奏合适</option>
+                  <option value="too_short">太短，没进入状态</option>
+                  <option value="slightly_short">略短，还可以展开</option>
+                  <option value="slightly_long">略长，但能接受</option>
+                  <option value="too_long">太长，疲劳</option>
+                </select>
+                <select id="experience-score">
+                  <option value="5">5 分</option>
+                  <option value="4">4 分</option>
+                  <option value="3">3 分</option>
+                  <option value="2">2 分</option>
+                  <option value="1">1 分</option>
+                </select>
+                <textarea id="experience-notes" rows="3" placeholder="例如：10 个任务刚好，100 个太像刷清单；希望 NPC 自己更主动判断下一步。"></textarea>
+                <button id="submit-experience" type="button">提交体验反馈</button>
+              </div>
+            </section>
+            <section>
+              <h4>NPC 内心</h4>
+              <p id="inner-thought" class="state-box muted">暂无</p>
+            </section>
+            <section>
+              <h4>LLM 调用轨迹</h4>
+              <pre id="llm-trace" class="state-box muted">{}</pre>
+            </section>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

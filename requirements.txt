@@ -1,0 +1,14 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+pydantic>=2.8.0
+python-dotenv>=1.0.1
+python-multipart>=0.0.9
+pypdf>=5.0.0
+python-docx>=1.1.0
+pytest>=8.0.0
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+rembg>=2.0.69
+onnxruntime>=1.17.0
