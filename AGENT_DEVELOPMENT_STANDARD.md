@@ -1,6 +1,6 @@
 # Agent 开发标准
 
-本文是项目内 Agent 开发标准文档（参赛仓库版）。主项目以 `.codex/skills/npc-agent-architecture/SKILL.md` 承载同一标准的可读版；参赛仓库未包含该 Skill 文件，以本文为权威依据。以后新增 Agent、重构 pipeline、放置 tool/compiler/store/review 时，优先按本文判断。
+本文是项目内 Agent 开发标准文档（参赛仓库版），即本仓库的权威依据。以后新增 Agent、重构 pipeline、放置 tool/compiler/store/review 时，优先按本文判断。
 
 ## 1. 一句话标准
 
@@ -355,7 +355,7 @@ Graph compiler 不重新解释故事。
 如果你是另一个 coding agent，修改本项目架构前请先读：
 
 ```text
-AGENT_DEVELOPMENT_STANDARD.md        （参赛仓库内即权威标准；主项目的 .codex/skills/npc-agent-architecture/SKILL.md 未随参赛仓库发布）
+AGENT_DEVELOPMENT_STANDARD.md        （参赛仓库内即权威标准文档）
 TECHNICAL_ARCHITECTURE.md
 EXTERNAL_CLIENT_INTEGRATION.md
 ```
