@@ -17,6 +17,7 @@
 - **执行证据沉淀与可观测**：会话存储（Session Store）记录完整对话 / 执行轨迹，供审查与回放。
 - **经验沉淀**：玩家 / 测试反馈回流，驱动后续生成质量提升。
 - **项目内 Skill 标准**：Agent 能力收敛到 `app/agents/<agent_module>` 模块边界，新能力按统一标准接入。
+- **标准 MCP 架构**：以 MCP 形态暴露工具边界——`creator_assistant` 的 `CreatorMcpToolServer` 实现 `tools/list`（`list_tools()`）与 `tools/call`（`call_tool()`），工具定义 / 结果信封严格遵循 MCP 数据模型，可被标准 MCP Client 理解；当前经 `GET/POST /api/creator/mcp/tools/{list,call}` 以 REST 暴露，传输层与业务逻辑解耦，后续可平滑替换为官方 MCP 传输（stdio / SSE / Streamable HTTP）。详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
 ## 架构流水线（文字冒险游戏）
 
@@ -48,7 +49,7 @@
 | `npc_runtime` | 角色运行时（私有记忆 / 私有状态） |
 | `playtest_validation` | 试玩 / 验证 |
 | `experience_learning` | 经验沉淀 |
-| `creator_assistant` | 创作者辅助 |
+| `creator_assistant` | 创作者辅助（含 MCP 形态工具边界：`CreatorMcpToolServer`） |
 | `ui_projection` | 对外的 UI / 接口投影 |
 
 （注：`npc_*` 命名来自文字冒险游戏的参考实现「角色 / NPC 协同」，模块能力本身是通用的。）
@@ -61,7 +62,7 @@ cp .env.example .env   # 填入 LLM / Embedding / 图像生成等 API Key
 python start_backend.ps1   # 启动后端
 ```
 
-详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md) 与 [AGENT_DEVELOPMENT_STANDARD.md](./AGENT_DEVELOPMENT_STANDARD.md)。
+详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md)、[AGENT_DEVELOPMENT_STANDARD.md](./AGENT_DEVELOPMENT_STANDARD.md) 与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
 ## 开源协议
 
