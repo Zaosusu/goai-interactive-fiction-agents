@@ -145,12 +145,7 @@ ScriptDecompositionAgent
   -> PlaytestAgent.simulate_adapter()
 ```
 
-这张全流程图已经归档在：
-
-```text
-architecture_docs/markdown/ARCHITECTURE_DIAGRAMS.md
-architecture_docs/images/technical/pipeline/npc_lorebook_runtime_pipeline.png
-```
+上图即完整的 NPC Lorebook runtime 流程图，已内嵌于本节，不依赖外部图册。
 
 边界说明：
 

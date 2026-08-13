@@ -19,27 +19,44 @@
 - **项目内 Skill 标准**：Agent 能力收敛到 `app/agents/<agent_module>` 模块边界，新能力按统一标准接入。
 - **标准 MCP 架构**：以 MCP 形态暴露工具边界——`creator_assistant` 的 `CreatorMcpToolServer` 实现 `tools/list`（`list_tools()`）与 `tools/call`（`call_tool()`），工具定义 / 结果信封严格遵循 MCP 数据模型，可被标准 MCP Client 理解；当前经 `GET/POST /api/creator/mcp/tools/{list,call}` 以 REST 暴露，传输层与业务逻辑解耦，后续可平滑替换为官方 MCP 传输（stdio / SSE / Streamable HTTP）。详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
-## 架构流水线（文字冒险游戏）
+## 架构概览（Agent Infra 视角）
 
-```text
-剧本 / 设定输入
-  -> 任务拆解 Agent（剧情与设定拆解）
-  -> 结构化中间产物（剧情图谱 / 角色卡 / 世界书）
-  -> 可选：资产生成 Agent（视觉提示词、立绘）
-  -> 世界 / 环境构建 Agent
-  -> 运行时（多角色协作 / 玩家对话）
-  -> 试玩 / 验证 Agent
-  -> 经验沉淀 Agent
+本项目以 **Agent-module-first** 为能力边界：一组共享 Agent 模块（`app/agents/*`）被两种控制面**并行**编排——**Pipeline Workbench**（阶段化 API，可直接检查、重跑每个 Artifact）与 **Creator Orchestrator**（Assistant + Workflow + MCP Tools 的对话式创作）。各阶段以**可检查、可持久化的 Artifact** 交接，最终由**两种 Runtime** 消费，而非单一播放逻辑。
+
+```mermaid
+flowchart TB
+    Pipeline["Pipeline Workbench<br/>阶段化 API、Artifact 检查与重跑"]
+    Creator["Creator Orchestrator<br/>Assistant + Workflow + MCP Tools"]
+    Agents["Shared Agent Modules<br/>Story / Script / Visual / World / Review / NPC"]
+    Store["Artifact Store + World Store"]
+    Player["Creator Graph Player<br/>确定性分支剧情"]
+    Runtime["Generic NPC Runtime<br/>Lorebook + Memory + RAG + Guardrail"]
+    Pipeline --> Agents
+    Creator --> Agents
+    Agents --> Store
+    Store --> Player
+    Store --> Runtime
 ```
 
-每个阶段都是独立、可替换、可复用的 Agent 模块，通过 `app/core` 的共享基础设施（LLM、RAG、记忆、运行时、护栏、会话存储）串联。
+> 参赛定位：以 Agent-module-first 为能力边界，通过 Pipeline Workbench 和 Creator Orchestrator 两种控制面编排共享 Agent；各阶段以可检查、可持久化的 Artifact 交接，最终由 Creator Graph Player 或 Generic NPC Runtime 消费，实现从内容生产、质量验证到多 NPC 运行的完整闭环。
+
+### 关键 Agent（编排图必须展开）
+
+```text
+StoryAuthoringAgent        StoryExpansionAgent         ScriptDecompositionAgent
+WorldBuilderAgent          VisualPromptComposerAgent   VisualAssetGenerationAgent
+WorldReviewAgent           PlaytestAgent               NpcLorebookCreationAgent
+NpcAgent                   NpcReviewAgent              CreatorAssistantAgent
+```
+
+> 说明：上表是 LLM Agent。另有**确定性组件**（`ScriptGraphCompiler`、`CreatorGraphCompiler`、`VisualAssetBindingCompiler`、`ArtifactStore`、`WorldStore`、`PlayerSessionStore`、`SandboxWorldAdapter` 等 Compiler / Validator / Store / Adapter）不是 Agent；它们属于内部实现细节，隐藏在产品总览图里是合理的。
 
 ## Agent 模块清单（app/agents）
 
 | 模块 | 职责 |
 |---|---|
 | `project_intake` | 项目 / 设定 / 接口文档结构化接入 |
-| `script_decomposition` / `global_script_decomposition` | 剧本与任务拆解 |
+| `script_decomposition` | 剧本与任务拆解 |
 | `story_authoring` / `story_expansion` | 剧情创作与扩展 |
 | `visual_prompt_composer` | 视觉提示词生成 |
 | `visual_asset_generation` | 视觉资产生成 |
@@ -63,7 +80,7 @@
 ```bash
 pip install -r requirements.txt
 cp .env.example .env   # 填入 LLM / Embedding / 图像生成等 API Key
-python start_backend.ps1   # 启动后端
+.\start_backend.ps1   # 启动后端
 ```
 
 详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md)、[AGENT_DEVELOPMENT_STANDARD.md](./AGENT_DEVELOPMENT_STANDARD.md) 与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
