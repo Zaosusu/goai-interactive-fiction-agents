@@ -17,7 +17,7 @@
 - **执行证据沉淀与可观测**：会话存储（Session Store）记录完整对话 / 执行轨迹，供审查与回放。
 - **经验沉淀**：玩家 / 测试反馈回流，驱动后续生成质量提升。
 - **项目内 Skill 标准**：Agent 能力收敛到 `app/agents/<agent_module>` 模块边界，新能力按统一标准接入。
-- **标准 MCP 架构**：以 MCP 形态暴露工具边界——`creator_assistant` 的 `CreatorMcpToolServer` 实现 `tools/list`（`list_tools()`）与 `tools/call`（`call_tool()`），工具定义 / 结果信封严格遵循 MCP 数据模型，可被标准 MCP Client 理解；当前经 `GET/POST /api/creator/mcp/tools/{list,call}` 以 REST 暴露，传输层与业务逻辑解耦，后续可平滑替换为官方 MCP 传输（stdio / SSE / Streamable HTTP）。详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
+- **MCP-shaped 工具边界**：`creator_assistant` 的 `CreatorMcpToolServer` 复用 MCP 的工具定义（`McpToolDefinition`）、注解（`McpToolAnnotations`）与结果信封（`McpTextContent` / `McpCallToolResult`）作为工具边界，实现 `tools/list`（`list_tools()`）与 `tools/call`（`call_tool()`）；当前经 `GET/POST /api/creator/mcp/tools/{list,call}` 以自定义 REST 暴露。该实现尚未挂载官方 MCP transport（无 JSON-RPC 层、无 `initialize` / capabilities 协商、无 stdio / SSE / Streamable HTTP 传输），且 `tools/call` 需额外携带 `project` 与 `artifacts` 上下文，因此标准 MCP Client 暂时不能直接连接。详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
 ## 架构概览（Agent Infra 视角）
 
@@ -73,7 +73,7 @@ NpcAgent                   NpcReviewAgent              CreatorAssistantAgent
 
 ## 三模块架构（Pipeline / Creator / Play）
 
-本框架在概念与产物流上由三个模块构成闭环：**Pipeline** 是平铺在 `app/agents/*` 的一组创作 Agent（`app/pipeline/` 为其 REST 入口）；**Creator**（`app/agents/creator_assistant/`）通过 `CreatorToolRegistry` 编排这些 Agent，并把成果 `save_world` 编译为 `SandboxWorldConfig`；**Play**（`app/player_experience/`）消费整个世界、在 `/play` 上跑互动。Creator 另以 MCP 形态（`tools/list` + `tools/call`）作为标准化出口。详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md) 第 21 节与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
+本框架在概念与产物流上由三个模块构成闭环：**Pipeline**（`app/pipeline/` 为 REST 入口）暴露 `app/agents/*` 中更广泛的阶段化创作能力；**Creator**（`app/agents/creator_assistant/`）编排共享 Agent 能力中的创作者工作流子集——`StoryAuthoringAgent`、`StoryExpansionAgent`、`VisualAssetGenerationAgent`、`WorldReviewAgent`、`PlaytestAgent`——并把成果 `save_world` 编译为 `SandboxWorldConfig`；**Play**（`app/player_experience/`）的 Creator Graph Player 仅消费经过 Creator 编译并发布的 `SandboxWorldConfig` 世界信封（要求 `metadata.published_to_play == true` 且 `metadata.creator_graph` 有效），普通 Pipeline 世界由 Generic NPC Runtime 消费。Creator 另以 MCP-shaped 工具边界（`tools/list` + `tools/call`）作为标准化出口。详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md) 第 21 节与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
 ## 快速开始
 

@@ -1,15 +1,15 @@
-# MCP 架构（标准 MCP 形态的工具边界）
+# MCP 架构（MCP-shaped 的工具边界）
 
 本文说明本项目如何以 **Model Context Protocol（MCP）形态** 对外暴露能力。核心实现位于 `app/agents/creator_assistant/mcp.py`，并通过 `app/agents/creator_assistant/routes.py` 暴露为 REST 端点。
 
 ## 1. 它是什么
 
-`CreatorMcpToolServer` 是一个 **MCP 形态（MCP-shaped）的工具边界**：
+`CreatorMcpToolServer` 是一个 **MCP-shaped 的工具边界**：
 
-- 工具的定义、调用与结果信封，严格遵循 MCP 的命名与数据结构约定；
-- 传输（transport）层刻意放在该类之外，便于后续接入官方 MCP 传输（stdio / SSE / Streamable HTTP）或被任意 MCP Client 直接驱动。
+- 工具的定义、调用与结果信封，复用 MCP 的命名与数据结构约定（`McpToolDefinition` / `McpToolAnnotations` / `McpTextContent` / `McpCallToolResult`）；
+- 传输（transport）层刻意放在该类之外，便于后续接入官方 MCP 传输（stdio / SSE / Streamable HTTP）。
 
-换句话说：本项目没有把工具能力锁死在私有接口里，而是用 MCP 的数据模型来描述「有哪些工具、怎么调用、返回什么」，对外是一个可被标准 MCP Client 理解的边界。
+换句话说：本项目没有把工具能力锁死在私有接口里，而是用 MCP 的数据模型来描述「有哪些工具、怎么调用、返回什么」；但当前实现尚未挂载官方 MCP transport（无 JSON-RPC 消息层、无 `initialize` / capabilities 协商、无标准 MCP 生命周期），且 `tools/call` 需额外携带 `project` 与 `artifacts` 上下文，因此标准 MCP Client 暂时不能直接连接。
 
 ## 2. 工具清单（tools/list）
 

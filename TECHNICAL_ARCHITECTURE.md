@@ -43,7 +43,6 @@ static 是浏览器操作台。
 项目内开发标准：
 
 ```text
-.codex/skills/npc-agent-architecture/SKILL.md
 AGENT_DEVELOPMENT_STANDARD.md
 ```
 
@@ -157,13 +156,7 @@ ScriptDecompositionAgent
 
 ## 1.1 Agent Module First 标准
 
-项目内 skill：
-
-```text
-.codex/skills/npc-agent-architecture/SKILL.md
-```
-
-团队说明：
+项目内开发标准：
 
 ```text
 AGENT_DEVELOPMENT_STANDARD.md
@@ -1765,30 +1758,30 @@ data/memory/
 ### 21.2 Creator（创作工作流）
 
 - 位置：`app/agents/creator_assistant/`。
-- 它不是一个 Agent，而是一个**编排工作流**：通过 `CreatorToolRegistry`（11 个工具）把 Pipeline 里的创作 Agent 串成一条「创作剧情 → 扩写 → 审查 → 视觉资产 → 试玩 → 保存 / 发布」的创作者流程。
+- Creator 不是单一 Agent，而是由 `CreatorAssistantAgent`（意图理解与工具决策）、`CreatorWorkflowOrchestrator`（工作流执行）、`CreatorMcpToolServer`（MCP-shaped 工具边界）、`CreatorToolRegistry`（工具目录）、`CreatorToolExecutor`（能力执行）组成的**复合创作控制面**。它通过 `CreatorToolRegistry`（11 个工具）编排共享 Agent 能力中的创作者工作流子集——`StoryAuthoringAgent`、`StoryExpansionAgent`、`VisualAssetGenerationAgent`、`WorldReviewAgent`、`PlaytestAgent`——串成一条「创作剧情 → 扩写 → 审查 → 视觉资产 → 试玩 → 保存 / 发布」的创作者流程。
 - 关键工具：`author_story`（调 `StoryAuthoringAgent`）、`expand_story`（调 `StoryExpansionAgent`）、`plan_visual_assets` / `generate_visual_assets` / `bind_visual_assets`（调 `VisualAssetGenerationAgent`）、`review_playable_world`（调 `WorldReviewAgent` + `PlaytestAgent`）。
 - `save_world`：把 Creator Graph 编译为 `SandboxWorldConfig` 并存入世界库。
 - `publish_to_play`：让该世界出现在 `/play` 的可玩世界列表。
 - 对外还暴露 **MCP 形态工具边界**（`mcp.py` 的 `CreatorMcpToolServer`，`tools/list` + `tools/call`），详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
-> 注意：Creator 直接 import 并调用 Pipeline 里的 Agent 类（而非经由 `app.pipeline` 模块转发），因此二者对底层 Agent 是「并行入口」关系；`app/pipeline` 与 `creator_assistant` 目前都直接驱动同一批创作 Agent。
+> 注意：Creator 直接 import 并调用共享 Agent 模块中的创作者工作流子集（而非经由 `app.pipeline` 模块转发）；`app/pipeline` 暴露的是更广泛的阶段化能力（含 `ScriptDecompositionAgent`、`WorldBuilderAgent`、`NpcLorebookCreationAgent` 等），二者对底层 Agent 是「并行入口」关系，但 Creator 编排的是其中面向创作发布的子集。
 
 ### 21.3 Play（玩家运行时）
 
 - 位置：`app/player_experience/`。
-- `PlayerStoryRuntime` **消费整个 `SandboxWorldConfig`**（即 Pipeline/Creator 的产出物），在其上做确定性的 GALGAME 式遍历（`start` / `resume` / `advance` / `choose`），由 `PlayerSessionStore` 做会话持久化与跨进程恢复。
+- `PlayerStoryRuntime` 是 Creator Graph Player 的核心，消费经过 Creator 编译并发布的 `SandboxWorldConfig` 世界信封（强制要求 `metadata.published_to_play == true` 且 `metadata.creator_graph` 存在且有效），在其上做确定性的 GALGAME 式遍历（`start` / `resume` / `advance` / `choose`），由 `PlayerSessionStore` 做会话持久化与跨进程恢复。普通 Pipeline 生成的世界不满足上述条件，由 Generic NPC Runtime 消费，不会进入 `/play`。
 - 经 `app/api/routes.py` 挂载到 `/play`，对玩家暴露可玩世界。
 
 ### 21.4 闭环
 
 ```
 Creator 工作流（creator_assistant）
-   ├─ 调用 ──> Pipeline 创作 Agent（app/agents/* ，REST 入口 app/pipeline/）
+   ├─ 调用 ──> 创作工作流子集 Agent（app/agents/*，与 Pipeline 共享的底层 Agent）
    ├─ save_world ──> SandboxWorldConfig（世界库）
    ├─ publish_to_play ──> 进入 /play 列表
-   └─ Play 运行时（player_experience）消费整个世界跑互动
+   └─ Play 运行时（player_experience）消费经 Creator 编译并发布的 SandboxWorldConfig 世界信封跑互动
 玩家反馈 ──> experience_learning（经验沉淀）回流 Pipeline，驱动后续生成质量提升。
 ```
 
-MCP 是 Creator 的**标准化出口**：任何标准 MCP Client 可绕过 UI 直接驱动创作能力，不锁死任何客户端。
+MCP-shaped 工具边界是 Creator 的**标准化出口**：复用 MCP 的工具定义、注解与结果信封对外暴露创作能力；当前尚未挂载官方 MCP transport（无 JSON-RPC 层、无 `initialize` / capabilities 协商、无 stdio / SSE / Streamable HTTP 传输），标准 MCP Client 暂不能直接连接。
 
