@@ -21,7 +21,7 @@
 
 ## 架构概览（Agent Infra 视角）
 
-本项目以 **Agent-module-first** 为能力边界：一组共享 Agent 模块（`app/agents/*`）被两种控制面**并行**编排——**Pipeline Workbench**（阶段化 API，可直接检查、重跑每个 Artifact）与 **Creator Orchestrator**（Assistant + Workflow + MCP Tools 的对话式创作）。各阶段以**可检查、可持久化的 Artifact** 交接，最终由**两种 Runtime** 消费，而非单一播放逻辑。
+本项目以 **Agent-module-first** 为能力边界：共享能力层位于 `app/agents/*`，由两种控制面**并行编排其中不同子集**——**Pipeline Workbench**（阶段化 API，可直接检查、重跑每个 Artifact）与 **Creator Orchestrator**（Assistant + Workflow + MCP Tools 的对话式创作）。各阶段以**可检查、可持久化的 Artifact** 交接，最终由**两种 Runtime** 消费，而非单一播放逻辑。
 
 ```mermaid
 flowchart TB
@@ -40,16 +40,17 @@ flowchart TB
 
 > 参赛定位：以 Agent-module-first 为能力边界，通过 Pipeline Workbench 和 Creator Orchestrator 两种控制面编排共享 Agent；各阶段以可检查、可持久化的 Artifact 交接，最终由 Creator Graph Player 或 Generic NPC Runtime 消费，实现从内容生产、质量验证到多 NPC 运行的完整闭环。
 
-### 关键 Agent（编排图必须展开）
+### 关键智能 Agent（编排图必须展开）
 
 ```text
 StoryAuthoringAgent        StoryExpansionAgent         ScriptDecompositionAgent
 WorldBuilderAgent          VisualPromptComposerAgent   VisualAssetGenerationAgent
-WorldReviewAgent           PlaytestAgent               NpcLorebookCreationAgent
-NpcAgent                   NpcReviewAgent              CreatorAssistantAgent
+NpcLorebookCreationAgent   NpcAgent                     CreatorAssistantAgent
 ```
 
-> 说明：上表是 LLM Agent。另有**确定性组件**（`ScriptGraphCompiler`、`CreatorGraphCompiler`、`VisualAssetBindingCompiler`、`ArtifactStore`、`WorldStore`、`PlayerSessionStore`、`SandboxWorldAdapter` 等 Compiler / Validator / Store / Adapter）不是 Agent；它们属于内部实现细节，隐藏在产品总览图里是合理的。
+当前名为 `WorldReviewAgent`、`NpcReviewAgent`、`PlaytestAgent` 的质量组件采用确定性规则实现，不调用 LLM；这些名称属于历史兼容命名，在架构角色上应视为 Review / Validator / Simulator，而不是智能 Agent。
+
+另有 `ScriptGraphCompiler`、`CreatorGraphCompiler`、`VisualAssetBindingCompiler`、`ArtifactStore`、`WorldStore`、`PlayerSessionStore`、`SandboxWorldAdapter` 等确定性 Compiler / Validator / Store / Adapter。它们属于内部实现细节，隐藏在产品总览图里是合理的，但在完整执行图中必须展开。
 
 ## Agent 模块清单（app/agents）
 
@@ -73,7 +74,7 @@ NpcAgent                   NpcReviewAgent              CreatorAssistantAgent
 
 ## 三模块架构（Pipeline / Creator / Play）
 
-本框架在概念与产物流上由三个模块构成闭环：**Pipeline**（`app/pipeline/` 为 REST 入口）暴露 `app/agents/*` 中更广泛的阶段化创作能力；**Creator**（`app/agents/creator_assistant/`）编排共享 Agent 能力中的创作者工作流子集——`StoryAuthoringAgent`、`StoryExpansionAgent`、`VisualAssetGenerationAgent`、`WorldReviewAgent`、`PlaytestAgent`——并把成果 `save_world` 编译为 `SandboxWorldConfig`；**Play**（`app/player_experience/`）的 Creator Graph Player 仅消费经过 Creator 编译并发布的 `SandboxWorldConfig` 世界信封（要求 `metadata.published_to_play == true` 且 `metadata.creator_graph` 有效），普通 Pipeline 世界由 Generic NPC Runtime 消费。Creator 另以 MCP-shaped 工具边界（`tools/list` + `tools/call`）作为标准化出口。详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md) 第 21 节与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
+本框架在概念与产物流上由三个模块构成闭环：**Pipeline**（`app/pipeline/` 为 REST 入口）暴露 `app/agents/*` 中更广泛的阶段化创作能力；**Creator**（`app/agents/creator_assistant/`）编排共享能力层中的创作者工作流子集——`StoryAuthoringAgent`、`StoryExpansionAgent`、`VisualAssetGenerationAgent`、`WorldReviewAgent`、`PlaytestAgent`——并把成果 `save_world` 编译为 `SandboxWorldConfig`；**Play**（`app/player_experience/`）的 Creator Graph Player 仅消费经过 Creator 编译并发布的 `SandboxWorldConfig` 世界信封（要求 `metadata.published_to_play == true` 且 `metadata.creator_graph` 有效），普通 Pipeline 世界由 Generic NPC Runtime 消费。Creator 另以 MCP-shaped 工具边界（`tools/list` + `tools/call`）作为标准化出口。详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md) 第 21 节与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
 ## 快速开始
 

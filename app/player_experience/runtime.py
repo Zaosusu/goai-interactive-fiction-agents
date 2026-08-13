@@ -152,6 +152,8 @@ class PlayerStoryRuntime:
         graph = (world.metadata or {}).get("creator_graph")
         if not isinstance(graph, dict) or not isinstance(graph.get("nodes"), list) or not graph["nodes"]:
             raise ValueError("这个世界没有 Creator Graph，暂时不能在文字冒险播放器中运行。")
+        if (world.metadata or {}).get("published_to_play") is not True:
+            raise ValueError("这个世界尚未发布，暂时不能在文字冒险播放器中运行。")
         normalized = self.graph_compiler.normalize(graph)
         report = self.graph_compiler.validate(normalized)
         if not report.valid:

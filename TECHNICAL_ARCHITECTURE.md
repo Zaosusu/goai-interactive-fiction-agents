@@ -1749,27 +1749,28 @@ data/memory/
 
 本框架在概念与产物流上由三个模块构成，对应「创作 → 编排 → 消费」的闭环。
 
-### 21.1 Pipeline（创作 Agent 集合）
+### 21.1 Pipeline（阶段化创作控制面）
 
-- 位置：各创作能力平铺在 `app/agents/*`，例如 `script_decomposition`（剧本拆解）、`world_builder`（世界构建）、`story_authoring` / `story_expansion`（剧情创作）、`visual_asset_generation`（视觉资产）、`world_review` / `npc_review`（审查）、`playtest_validation`（试玩验证）、`npc_runtime` / `npc_lorebook`（角色运行时与知识库）、`experience_learning`（经验沉淀）。
-- `app/pipeline/` 是这些创作 Agent 的 **REST 入口**（`routes.py`）：调用 `script_decomposition` / `world_builder` / 视觉资产 Agent，产出 `SandboxWorldConfig` 及各类 artifact（剧本拆解、剧本图谱、视觉资产等）并落盘到对应 store。
-- 换言之，Pipeline 是「一组可被独立调用的创作能力」；`app/pipeline/` 提供的是它的对外 HTTP 面。
+- 共享能力按所有权平铺在 `app/agents/*`，包括剧本拆解、世界构建、剧情创作与扩写、视觉资产、审查、试玩、NPC 世界书与运行时、经验沉淀等模块；这些模块共同构成系统的能力层，但并非全部由 `app/pipeline/routes.py` 暴露。
+- `app/pipeline/routes.py` 是 **Pipeline Workbench 的阶段化 REST 入口**，直接暴露剧本拆解、Script Graph 编译、视觉资产规划/生成和世界生成等阶段，并将对应 artifact 落盘。世界生成入口调用 `WorldBuilderAgent`，其内部生成链会附加 `NpcLorebookCreationAgent` 产物并执行质量门。
+- 独立 Lorebook 生成/版本选择与 Experience Learning API 位于 `app/content/routes.py`；Generic NPC Runtime 位于 `app/client/routes.py`。它们共享 Agent 模块和 Store，但不属于 `app/pipeline/routes.py` 的直接端点。
+- 因此，Pipeline 在产品视图中表示可检查、可重跑的阶段化创作控制面；代码视图必须继续区分 Pipeline REST、Content REST、内部生成链和 Runtime API 的所有权。
 
 ### 21.2 Creator（创作工作流）
 
 - 位置：`app/agents/creator_assistant/`。
-- Creator 不是单一 Agent，而是由 `CreatorAssistantAgent`（意图理解与工具决策）、`CreatorWorkflowOrchestrator`（工作流执行）、`CreatorMcpToolServer`（MCP-shaped 工具边界）、`CreatorToolRegistry`（工具目录）、`CreatorToolExecutor`（能力执行）组成的**复合创作控制面**。它通过 `CreatorToolRegistry`（11 个工具）编排共享 Agent 能力中的创作者工作流子集——`StoryAuthoringAgent`、`StoryExpansionAgent`、`VisualAssetGenerationAgent`、`WorldReviewAgent`、`PlaytestAgent`——串成一条「创作剧情 → 扩写 → 审查 → 视觉资产 → 试玩 → 保存 / 发布」的创作者流程。
+- Creator 不是单一 Agent，而是由 `CreatorAssistantAgent`（意图理解与工具决策）、`CreatorWorkflowOrchestrator`（工作流执行）、`CreatorMcpToolServer`（MCP-shaped 工具边界）、`CreatorToolRegistry`（工具目录）、`CreatorToolExecutor`（能力执行）组成的**复合创作控制面**。它通过 `CreatorToolRegistry`（11 个工具）编排共享能力层中的创作者工作流子集——`StoryAuthoringAgent`、`StoryExpansionAgent`、`VisualAssetGenerationAgent`、`WorldReviewAgent`、`PlaytestAgent`——串成一条「创作剧情 → 扩写 → 审查 → 视觉资产 → 试玩 → 保存 / 发布」的创作者流程。
 - 关键工具：`author_story`（调 `StoryAuthoringAgent`）、`expand_story`（调 `StoryExpansionAgent`）、`plan_visual_assets` / `generate_visual_assets` / `bind_visual_assets`（调 `VisualAssetGenerationAgent`）、`review_playable_world`（调 `WorldReviewAgent` + `PlaytestAgent`）。
 - `save_world`：把 Creator Graph 编译为 `SandboxWorldConfig` 并存入世界库。
 - `publish_to_play`：让该世界出现在 `/play` 的可玩世界列表。
 - 对外还暴露 **MCP 形态工具边界**（`mcp.py` 的 `CreatorMcpToolServer`，`tools/list` + `tools/call`），详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
 
-> 注意：Creator 直接 import 并调用共享 Agent 模块中的创作者工作流子集（而非经由 `app.pipeline` 模块转发）；`app/pipeline` 暴露的是更广泛的阶段化能力（含 `ScriptDecompositionAgent`、`WorldBuilderAgent`、`NpcLorebookCreationAgent` 等），二者对底层 Agent 是「并行入口」关系，但 Creator 编排的是其中面向创作发布的子集。
+> 注意：Creator 直接 import 并调用共享 Agent 模块中的创作者工作流子集（而非经由 `app.pipeline` 模块转发）；`app/pipeline` 直接暴露剧本拆解、世界构建和视觉资产等更广泛的阶段化能力。Lorebook 与 Experience Learning 的独立 API 位于 `app/content`，其中 Lorebook 也会在 WorldBuilder 内部生成链中运行。两种控制面对底层 Agent 是并行入口关系，但 Creator 只编排其中面向创作发布的子集。
 
 ### 21.3 Play（玩家运行时）
 
 - 位置：`app/player_experience/`。
-- `PlayerStoryRuntime` 是 Creator Graph Player 的核心，消费经过 Creator 编译并发布的 `SandboxWorldConfig` 世界信封（强制要求 `metadata.published_to_play == true` 且 `metadata.creator_graph` 存在且有效），在其上做确定性的 GALGAME 式遍历（`start` / `resume` / `advance` / `choose`），由 `PlayerSessionStore` 做会话持久化与跨进程恢复。普通 Pipeline 生成的世界不满足上述条件，由 Generic NPC Runtime 消费，不会进入 `/play`。
+- `PlayerStoryRuntime` 是 Creator Graph Player 的核心，消费经过 Creator 编译并发布的 `SandboxWorldConfig` 世界信封（Runtime 与 Player API 均强制要求 `metadata.published_to_play == true`，Runtime 还要求 `metadata.creator_graph` 存在且有效），在其上做确定性的 GALGAME 式遍历（`start` / `resume` / `advance` / `choose`），由 `PlayerSessionStore` 做会话持久化与跨进程恢复。普通 Pipeline 生成的世界不满足上述条件，由 Generic NPC Runtime 消费，不会进入 `/play`。
 - 经 `app/api/routes.py` 挂载到 `/play`，对玩家暴露可玩世界。
 
 ### 21.4 闭环

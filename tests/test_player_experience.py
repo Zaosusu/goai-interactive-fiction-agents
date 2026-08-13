@@ -181,6 +181,15 @@ def test_player_runtime_rejects_post_story_before_ending_and_world_without_graph
         runtime.start(graphless)
 
 
+def test_player_runtime_rejects_unpublished_creator_graph(tmp_path: Path) -> None:
+    runtime = PlayerStoryRuntime(PlayerSessionStore(tmp_path / "sessions"))
+    world = make_world()
+    world.metadata["published_to_play"] = False
+
+    with pytest.raises(ValueError, match="尚未发布"):
+        runtime.start(world)
+
+
 def test_player_runtime_restarts_stale_session_when_updated_story_removed_current_node(tmp_path: Path) -> None:
     runtime = PlayerStoryRuntime(PlayerSessionStore(tmp_path / "sessions"))
     old_world = make_world()
@@ -291,6 +300,32 @@ def test_player_library_hides_unpublished_creator_drafts(monkeypatch) -> None:
 
     assert listed.status_code == 200
     assert listed.json() == []
+
+
+def test_player_api_rejects_direct_access_to_unpublished_creator_drafts(monkeypatch) -> None:
+    from app.api import shared
+
+    draft = make_world()
+    draft.metadata["published_to_play"] = False
+    monkeypatch.setattr(shared, "world_store", _FakeWorldStore(draft))
+    client = TestClient(app)
+
+    requests = [
+        ("POST", "/api/player/worlds/test_story/start", {"session_id": "draft", "restart": False}),
+        ("GET", "/api/player/worlds/test_story/sessions/draft", None),
+        ("POST", "/api/player/worlds/test_story/advance", {"session_id": "draft"}),
+        ("POST", "/api/player/worlds/test_story/choose", {"session_id": "draft", "choice_id": "tell_truth"}),
+        (
+            "POST",
+            "/api/player/worlds/test_story/post-story/chat",
+            {"session_id": "draft", "target_npc_id": "npc_ling", "message": "测试"},
+        ),
+        ("DELETE", "/api/player/worlds/test_story/sessions/draft", None),
+    ]
+
+    for method, path, payload in requests:
+        response = client.request(method, path, json=payload)
+        assert response.status_code == 404, (method, path, response.text)
 
 
 def test_player_page_route_is_registered() -> None:

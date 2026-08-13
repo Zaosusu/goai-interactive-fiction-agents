@@ -153,12 +153,16 @@ async def post_story_chat(world_id: str, request: PostStoryChatRequest) -> PostS
 
 @router.delete("/worlds/{world_id}/sessions/{session_id}")
 async def reset_player_story(world_id: str, session_id: str) -> dict[str, bool]:
+    _world(world_id)
     runtime.reset(world_id, session_id)
     return {"deleted": True}
 
 
 def _world(world_id: str):
     try:
-        return shared.world_store.load(world_id)
+        world = shared.world_store.load(world_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=f"world not found: {world_id}") from exc
+    if (world.metadata or {}).get("published_to_play") is not True:
+        raise HTTPException(status_code=404, detail=f"playable world not found: {world_id}")
+    return world
