@@ -54,6 +54,10 @@
 
 （注：`npc_*` 命名来自文字冒险游戏的参考实现「角色 / NPC 协同」，模块能力本身是通用的。）
 
+## 三模块架构（Pipeline / Creator / Play）
+
+本框架在概念与产物流上由三个模块构成闭环：**Pipeline** 是平铺在 `app/agents/*` 的一组创作 Agent（`app/pipeline/` 为其 REST 入口）；**Creator**（`app/agents/creator_assistant/`）通过 `CreatorToolRegistry` 编排这些 Agent，并把成果 `save_world` 编译为 `SandboxWorldConfig`；**Play**（`app/player_experience/`）消费整个世界、在 `/play` 上跑互动。Creator 另以 MCP 形态（`tools/list` + `tools/call`）作为标准化出口。详见 [TECHNICAL_ARCHITECTURE.md](./TECHNICAL_ARCHITECTURE.md) 第 21 节与 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
+
 ## 快速开始
 
 ```bash

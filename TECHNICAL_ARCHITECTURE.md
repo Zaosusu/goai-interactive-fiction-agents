@@ -1757,3 +1757,43 @@ data/memory/
 5. 引入数据库：PostgreSQL + pgvector。
 6. 前端编辑器复杂后迁移到 TypeScript 框架。
 
+## 21. 三模块架构：Pipeline / Creator / Play
+
+本框架在概念与产物流上由三个模块构成，对应「创作 → 编排 → 消费」的闭环。
+
+### 21.1 Pipeline（创作 Agent 集合）
+
+- 位置：各创作能力平铺在 `app/agents/*`，例如 `script_decomposition`（剧本拆解）、`world_builder`（世界构建）、`story_authoring` / `story_expansion`（剧情创作）、`visual_asset_generation`（视觉资产）、`world_review` / `npc_review`（审查）、`playtest_validation`（试玩验证）、`npc_runtime` / `npc_lorebook`（角色运行时与知识库）、`experience_learning`（经验沉淀）。
+- `app/pipeline/` 是这些创作 Agent 的 **REST 入口**（`routes.py`）：调用 `script_decomposition` / `world_builder` / 视觉资产 Agent，产出 `SandboxWorldConfig` 及各类 artifact（剧本拆解、剧本图谱、视觉资产等）并落盘到对应 store。
+- 换言之，Pipeline 是「一组可被独立调用的创作能力」；`app/pipeline/` 提供的是它的对外 HTTP 面。
+
+### 21.2 Creator（创作工作流）
+
+- 位置：`app/agents/creator_assistant/`。
+- 它不是一个 Agent，而是一个**编排工作流**：通过 `CreatorToolRegistry`（11 个工具）把 Pipeline 里的创作 Agent 串成一条「创作剧情 → 扩写 → 审查 → 视觉资产 → 试玩 → 保存 / 发布」的创作者流程。
+- 关键工具：`author_story`（调 `StoryAuthoringAgent`）、`expand_story`（调 `StoryExpansionAgent`）、`plan_visual_assets` / `generate_visual_assets` / `bind_visual_assets`（调 `VisualAssetGenerationAgent`）、`review_playable_world`（调 `WorldReviewAgent` + `PlaytestAgent`）。
+- `save_world`：把 Creator Graph 编译为 `SandboxWorldConfig` 并存入世界库。
+- `publish_to_play`：让该世界出现在 `/play` 的可玩世界列表。
+- 对外还暴露 **MCP 形态工具边界**（`mcp.py` 的 `CreatorMcpToolServer`，`tools/list` + `tools/call`），详见 [MCP_ARCHITECTURE.md](./MCP_ARCHITECTURE.md)。
+
+> 注意：Creator 直接 import 并调用 Pipeline 里的 Agent 类（而非经由 `app.pipeline` 模块转发），因此二者对底层 Agent 是「并行入口」关系；`app/pipeline` 与 `creator_assistant` 目前都直接驱动同一批创作 Agent。
+
+### 21.3 Play（玩家运行时）
+
+- 位置：`app/player_experience/`。
+- `PlayerStoryRuntime` **消费整个 `SandboxWorldConfig`**（即 Pipeline/Creator 的产出物），在其上做确定性的 GALGAME 式遍历（`start` / `resume` / `advance` / `choose`），由 `PlayerSessionStore` 做会话持久化与跨进程恢复。
+- 经 `app/api/routes.py` 挂载到 `/play`，对玩家暴露可玩世界。
+
+### 21.4 闭环
+
+```
+Creator 工作流（creator_assistant）
+   ├─ 调用 ──> Pipeline 创作 Agent（app/agents/* ，REST 入口 app/pipeline/）
+   ├─ save_world ──> SandboxWorldConfig（世界库）
+   ├─ publish_to_play ──> 进入 /play 列表
+   └─ Play 运行时（player_experience）消费整个世界跑互动
+玩家反馈 ──> experience_learning（经验沉淀）回流 Pipeline，驱动后续生成质量提升。
+```
+
+MCP 是 Creator 的**标准化出口**：任何标准 MCP Client 可绕过 UI 直接驱动创作能力，不锁死任何客户端。
+
